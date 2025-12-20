@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% load static %}  <!-- 继承基础模板base.html，复用导航栏、页脚等公共组件 -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+{% block content %}  <!-- 定义content块，替换base.html中的对应块 -->
+    <!-- 轮播图区域：使用Bootstrap 5的轮播组件 -->
+    <div id="carouselExampleIndicators" class="carousel slide" data-bs-ride="carousel">
+        <!-- 轮播指示器：显示轮播图数量和当前位置 -->
+        <div class="carousel-indicators">
+            <!-- 使用for循环遍历视图传递的轮播图数据 -->
+            {% for carousel in carousels %}
+            <!-- 为每个轮播图创建一个指示器按钮 -->
+            <!-- data-bs-slide-to="{{ forloop.counter0 }}"：设置按钮对应第几张轮播图（从0开始） -->
+            <!-- {% if forloop.first %}class="active"{% endif %}：第一张轮播图的指示器添加active类 -->
+            <button type="button" 
+                    data-bs-target="#carouselExampleIndicators" 
+                    data-bs-slide-to="{{ forloop.counter0 }}" 
+                    {% if forloop.first %}class="active" aria-current="true"{% endif %} 
+                    aria-label="Slide {{ forloop.counter }}">
+            </button>
+            {% endfor %}
+        </div>
+        
+{#        <!-- 轮播内容区域 -->#}
+{#        <div class="carousel-inner">#}
+{#            <!-- 使用for循环遍历轮播图数据 -->#}
+{#            {% for carousel in carousels %}#}
+{#            <!-- 为每个轮播图创建一个轮播项 -->#}
+{#            <!-- {% if forloop.first %}active{% endif %}：第一张轮播图的轮播项添加active类 -->#}
+{#            <div class="carousel-item {% if forloop.first %}active{% endif %}">#}
+{#                <!-- 轮播图片：使用{{ carousel.image.url }}获取图片的URL -->#}
+{#                <img src="{{ carousel.image.url }}" class="d-block w-100" alt="{{ carousel.scenic_spot.name }}">#}
+{#                <!-- 轮播图片标题和描述：仅在中等屏幕及以上显示 -->#}
+{#                <div class="carousel-caption d-none d-md-block">#}
+{#                    <h5>{{ carousel.scenic_spot.name }}</h5>  <!-- 景点名称 -->#}
+{#                    <p>{{ carousel.scenic_spot.description|truncatechars:100 }}</p>  <!-- 景点描述，最多显示100个字符 -->#}
+{#                </div>#}
+{#            </div>#}
+{#            {% endfor %}#}
+{#        </div>#}
+
+        <div class="carousel-inner">
+            <!-- 硬编码轮播图 -->
+            <div class="carousel-item active">
+                <img src="{% static 'carousel/image2.jpg' %}" class="d-block w-100" alt="景点1">
+                <div class="carousel-caption d-none d-md-block">
+                    <h5>景点名称1</h5>
+                    <p>景点描述1</p>
+                </div>
+            </div>
+            <div class="carousel-item" >
+                <img src="{% static 'carousel/image1.jpg' %}" class="d-block w-100" alt="景点2" >
+                <div class="carousel-caption d-none d-md-block">
+                    <h5>景点名称2</h5>
+                    <p>景点描述2</p>
+                </div>
+            </div>
+            <!-- 更多轮播图 -->
+        </div>
+        
+        <!-- 轮播控制按钮：上一张和下一张 -->
+        <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+        </button>
+    </div>
+
+    <!-- 平台重要公告区域 -->
+    <div class="container mt-5">  <!-- container：Bootstrap容器，提供响应式布局 -->
+        <h2 class="mb-4">平台重要公告</h2>  <!-- mb-4：底部外边距，值为4 -->
+        <div class="row">  <!-- row：Bootstrap行，用于创建网格布局 -->
+            <!-- 使用for循环遍历视图传递的公告数据 -->
+            {% for announcement in announcements %}
+            <div class="col-md-4 mb-3">  <!-- col-md-4：中等屏幕及以上占4列，mb-3：底部外边距 -->
+                <div class="card h-100">  <!-- card：Bootstrap卡片组件，h-100：高度100% -->
+                    <!-- 公告图片：如果存在则显示 -->
+                    {% if announcement.image %}
+                    <img src="{{ announcement.image.url }}"
+                         class="card-img-top"
+                         alt="{{ announcement.title }}"
+                         style="height: 200px; object-fit: cover;">s
+                    {% endif %}
+                    <!-- 卡片内容区域 -->
+                    <div class="card-body">
+                        <h5 class="card-title">{{ announcement.title }}</h5>  <!-- 公告标题 -->
+                        <p class="card-text">{{ announcement.content|truncatechars:100 }}</p>  <!-- 公告内容，最多显示100个字符 -->
+                        <!-- 查看详情按钮：使用{% url 'ticket:news_detail' news_id=announcement.id %}生成详情页URL -->
+                        <a href="{% url 'ticket:news_detail' news_id=announcement.id %}" class="btn btn-primary">查看详情</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 最新旅游资讯区域 -->
+    <div class="container mt-5">
+        <h2 class="mb-4">最新旅游资讯</h2>
+        <div class="row">
+            <!-- 使用for循环遍历视图传递的最新资讯数据 -->
+            {% for news in latest_news %}
+            <div class="col-md-3 mb-3">  <!-- col-md-3：中等屏幕及以上占3列 -->
+                <div class="card h-100">
+                    <!-- 资讯图片：如果存在则显示 -->
+                    {% if news.image %}
+                    <img src="{{ news.image.url }}"
+                         class="card-img-top"
+                         alt="{{ news.title }}"
+                         style="height: 150px; object-fit: cover;">
+                    {% endif %}
+                    <!-- 卡片内容区域 -->
+                    <div class="card-body">
+                        <h6 class="card-title">{{ news.title }}</h6>  <!-- 资讯标题，使用h6标签 -->
+                        <p class="card-text">{{ news.content|truncatechars:80 }}</p>  <!-- 资讯内容，最多显示80个字符 -->
+                        <!-- 阅读更多按钮：使用btn-sm类创建小型按钮 -->
+                        <a href="{% url 'ticket:news_detail' news_id=news.id %}" class="btn btn-sm btn-primary">阅读更多</a>
+                    </div>
+                    <!-- 卡片页脚：显示资讯发布时间 -->
+                    <div class="card-footer">
+                        <small class="text-muted">{{ news.created_at|date:"Y-m-d" }}</small>  <!-- 使用date过滤器格式化日期 -->
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 热门景点区域 -->
+    <div class="container mt-5 mb-5">  <!-- mt-5：顶部外边距5，mb-5：底部外边距5 -->
+        <h2 class="mb-4">热门景点</h2>
+        <div class="row">
+            <!-- 使用for循环遍历视图传递的热门景点数据 -->
+            {% for spot in hot_spots %}
+            <div class="col-md-4 mb-4">  <!-- col-md-4：中等屏幕及以上占4列，mb-4：底部外边距4 -->
+                <div class="card h-100">
+                    <!-- 景点图片 -->
+                    <img src="{{ spot.image.url }}"
+                         class="card-img-top"
+                         alt="{{ spot.name }}"
+                         style="height: 250px; object-fit: cover;">
+                    <!-- 卡片内容区域 -->
+                    <div class="card-body">
+                        <h5 class="card-title">{{ spot.name }}</h5>  <!-- 景点名称 -->
+                        <p class="card-text">{{ spot.description|truncatechars:120 }}</p>  <!-- 景点描述，最多显示120个字符 -->
+                        <!-- 使用d-flex创建弹性布局，对齐价格和按钮 -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-danger fs-5">¥{{ spot.price }}</span>  <!-- 景点价格，使用text-danger类显示为红色，fs-5设置字体大小 -->
+                            <!-- 查看详情按钮：链接到景点详情页 -->
+                            <a href="{% url 'ticket:scenic_spot_detail' spot_id=spot.id %}" class="btn btn-primary">查看详情</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}  <!-- 结束content块 -->

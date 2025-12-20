@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h2>订单中心</h2>
+        <ul class="nav nav-tabs mt-4" id="orderTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab" aria-controls="all" aria-selected="true">全部订单</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab" aria-controls="pending" aria-selected="false">待支付</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="paid-tab" data-bs-toggle="tab" data-bs-target="#paid" type="button" role="tab" aria-controls="paid" aria-selected="false">已支付</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="used-tab" data-bs-toggle="tab" data-bs-target="#used" type="button" role="tab" aria-controls="used" aria-selected="false">已使用</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="cancelled-tab" data-bs-toggle="tab" data-bs-target="#cancelled" type="button" role="tab" aria-controls="cancelled" aria-selected="false">已取消</button>
+            </li>
+        </ul>
+        <div class="tab-content mt-4" id="orderTabsContent">
+            <div class="tab-pane fade show active" id="all" role="tabpanel" aria-labelledby="all-tab">
+                <div class="card">
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">订单号</th>
+                                    <th scope="col">景点名称</th>
+                                    <th scope="col">数量</th>
+                                    <th scope="col">总价</th>
+                                    <th scope="col">状态</th>
+                                    <th scope="col">创建时间</th>
+                                    <th scope="col">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 订单列表为空时的提示 -->
+                                <tr>
+                                    <td colspan="7" class="text-center py-5">
+                                        <p>暂无订单记录</p>
+                                        <a href="{% url 'ticket:scenic_spots' %}" class="btn btn-primary">去选景点</a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <!-- 其他标签页内容结构类似，这里省略 -->
+            <div class="tab-pane fade" id="pending" role="tabpanel" aria-labelledby="pending-tab">
+                <!-- 待支付订单内容 -->
+                <div class="text-center py-5">
+                    <p>暂无待支付订单</p>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="paid" role="tabpanel" aria-labelledby="paid-tab">
+                <!-- 已支付订单内容 -->
+                <div class="text-center py-5">
+                    <p>暂无已支付订单</p>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="used" role="tabpanel" aria-labelledby="used-tab">
+                <!-- 已使用订单内容 -->
+                <div class="text-center py-5">
+                    <p>暂无已使用订单</p>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="cancelled" role="tabpanel" aria-labelledby="cancelled-tab">
+                <!-- 已取消订单内容 -->
+                <div class="text-center py-5">
+                    <p>暂无已取消订单</p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

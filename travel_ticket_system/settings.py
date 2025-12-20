@@ -24,7 +24,30 @@ SECRET_KEY = "django-insecure-m%v1-p)ho9xx25&g!&&skaa+x!g!v9rg(n=p-rr4a^=ttxxz^-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+
+# HTTPS配置
+SECURE_SSL_REDIRECT = not DEBUG  # 仅在生产环境重定向所有HTTP请求到HTTPS
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # 支持代理服务器的HTTPS
+SECURE_HSTS_SECONDS = 3600  # 1小时的HSTS策略
+SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG  # 仅在生产环境启用子域名HTTPS
+SECURE_HSTS_PRELOAD = not DEBUG  # 仅在生产环境允许浏览器预加载HSTS策略
+SECURE_BROWSER_XSS_FILTER = True  # 启用XSS防护
+SECURE_CONTENT_TYPE_NOSNIFF = True  # 防止浏览器猜测内容类型
+SECURE_REFERRER_POLICY = 'same-origin'  # 安全的Referer策略
+
+# 安全Cookie设置
+CSRF_COOKIE_SECURE = not DEBUG  # 仅在生产环境使用HTTPS传输CSRF Cookie
+SESSION_COOKIE_SECURE = not DEBUG  # 仅在生产环境使用HTTPS传输Session Cookie
+
+# 静态文件和媒体文件URL配置
+STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
+
+# 确保在生产环境中使用HTTPS URL
+if not DEBUG:
+    STATIC_URL = 'https://' + ALLOWED_HOSTS[0] + '/static/'
+    MEDIA_URL = 'https://' + ALLOWED_HOSTS[0] + '/media/'
 
 # Application definition
 
@@ -35,10 +58,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    'django_extensions',
     'ticket.apps.TicketConfig',
     'rest_framework',
     'corsheaders',
-    'ticket',
 ]
 
 MIDDLEWARE = [
@@ -129,3 +152,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+# 静态文件目录配置，用于开发环境
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'staticfiles'),
+]

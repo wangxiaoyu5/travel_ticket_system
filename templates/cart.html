@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h2>购物车</h2>
+        <div class="card mt-4">
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col">景点名称</th>
+                            <th scope="col">价格</th>
+                            <th scope="col">数量</th>
+                            <th scope="col">小计</th>
+                            <th scope="col">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 购物车为空时的提示 -->
+                        <tr>
+                            <td colspan="5" class="text-center py-5">
+                                <p>购物车为空，请先添加商品</p>
+                                <a href="{% url 'ticket:scenic_spots' %}" class="btn btn-primary">去选景点</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endblock %}

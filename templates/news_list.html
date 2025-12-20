@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h2>资讯公告</h2>
+        <div class="row mt-4">
+            {% for news_item in news %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    {% if news_item.image %}
+                    <img src="{{ news_item.image.url }}" class="card-img-top" alt="{{ news_item.title }}" height="200" object-fit="cover">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            {% if news_item.is_announcement %}
+                            <span class="badge bg-danger me-2">公告</span>
+                            {% endif %}
+                            {{ news_item.title }}
+                        </h5>
+                        <p class="card-text">{{ news_item.content|truncatechars:120 }}</p>
+                        <a href="{% url 'ticket:news_detail' news_id=news_item.id %}" class="btn btn-primary">查看详情</a>
+                    </div>
+                    <div class="card-footer">
+                        <small class="text-muted">{{ news_item.created_at|date:"Y-m-d H:i" }}</small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}
