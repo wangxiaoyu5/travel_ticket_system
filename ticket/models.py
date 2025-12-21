@@ -1,10 +1,14 @@
-# 导入Django的模型模块
+# 导入Django的模型模块，用于创建数据库表结构
 from django.db import models
-# 导入Django的用户抽象模型，用于自定义用户模型
-from django.contrib.auth.models import AbstractUser
+# 导入Django的用户抽象模型和UserManager，用于自定义用户模型
+from django.contrib.auth.models import AbstractUser, UserManager
 
 # 自定义用户模型，继承自AbstractUser，支持三种角色
 class User(AbstractUser):
+    # 使用UserManager作为管理器，支持create_user和create_superuser方法
+    DoesNotExist = None
+    objects = UserManager()
+    
     # 定义角色选择元组，用于限制角色取值范围
     # 0-游客，1-景点管理员，2-网站管理员
     ROLE_CHOICES = (
@@ -12,14 +16,25 @@ class User(AbstractUser):
         (1, '景点管理员'),  # 可管理自己负责的景点信息
         (2, '网站管理员'),  # 可管理所有系统资源
     )
+    
+    # 定义性别选择元组
+    GENDER_CHOICES = (
+        ('', '请选择性别'),  # 默认空值，提示用户选择
+        ('male', '男'),      # 男性
+        ('female', '女'),    # 女性
+        ('other', '其他'),   # 其他性别
+    )
+    
     # 角色字段，使用IntegerField存储，默认值为0（游客）
     role = models.IntegerField(choices=ROLE_CHOICES, default=0, verbose_name='角色')
     # 头像字段，使用ImageField存储，允许为空，上传路径为'avatars/'
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True, verbose_name='头像')
     # 手机号字段，使用CharField存储，最大长度11，允许为空
     phone = models.CharField(max_length=11, null=True, blank=True, verbose_name='手机号')
-    # 显式定义objects管理器，解决IDE警告
-    objects = models.Manager()
+    # 性别字段，使用CharField存储，最大长度10，允许为空
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='', verbose_name='性别')
+    # 出生日期字段，使用DateField存储，允许为空
+    birthdate = models.DateField(null=True, blank=True, verbose_name='出生日期')
     
     # 模型元数据配置
     class Meta:
@@ -28,18 +43,22 @@ class User(AbstractUser):
 
 # 景点信息模型，存储所有景点的详细信息
 class ScenicSpot(models.Model):
-    # 景点分类选择
+    # 景点分类选择元组，定义了8种景点类型
+    DoesNotExist = None
     CATEGORY_CHOICES = (
-        ('natural', '自然风光类'),
-        ('historical', '历史遗迹类'),
-        ('folklore', '民俗文化类'),
-        ('modern', '现代都市类'),
-        ('leisure', '休闲度假类'),
-        ('theme', '主题乐园类'),
-        ('religious', '宗教文化类'),
-        ('rural', '农业乡村类'),
+        ('natural', '自然风光类'),   # 如山水、森林、湖泊等自然景观
+        ('historical', '历史遗迹类'),  # 如古建筑、遗址、博物馆等
+        ('folklore', '民俗文化类'),  # 如民族村、民俗表演等
+        ('modern', '现代都市类'),    # 如城市地标、主题公园等
+        ('leisure', '休闲度假类'),   # 如度假村、温泉、海滩等
+        ('theme', '主题乐园类'),     # 如迪士尼、环球影城等
+        ('religious', '宗教文化类'),  # 如寺庙、教堂等宗教场所
+        ('rural', '农业乡村类'),     # 如农家乐、乡村旅游等
     )
     
+    # 关联的景点管理员，使用ForeignKey建立一对多关系，允许为空
+    # 当关联的用户删除时，该字段设为NULL
+    admin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='managed_scenic_spots', verbose_name='景点管理员')
     # 景点名称，使用CharField存储，最大长度100
     name = models.CharField(max_length=100, verbose_name='景点名称')
     # 景点描述，使用TextField存储，支持长文本
@@ -60,11 +79,16 @@ class ScenicSpot(models.Model):
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='natural', verbose_name='分类')
     # 景点标签，使用CharField存储，最大长度100，用于存储多个标签，以逗号分隔
     tags = models.CharField(max_length=100, default='热门', verbose_name='标签', help_text='多个标签用逗号分隔')
+    # 景点评分，使用DecimalField存储，最大3位数字，1位小数，默认0.0
+    rating = models.DecimalField(max_digits=3, decimal_places=1, default=0.0, verbose_name='评分')
+    # 预约人数，使用IntegerField存储，默认0
+    booking_count = models.IntegerField(default=0, verbose_name='预约人数')
+    # 总票数，使用IntegerField存储，默认1000
+    total_tickets = models.IntegerField(default=1000, verbose_name='总票数')
     # 创建时间，使用DateTimeField存储，自动添加当前时间
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     # 更新时间，使用DateTimeField存储，自动更新为当前时间
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
-    
     # 显式定义objects管理器，解决IDE警告
     objects = models.Manager()
     
@@ -117,19 +141,76 @@ class Carousel(models.Model):
         verbose_name_plural = verbose_name  # 复数形式的可读名称
         ordering = ['order']              # 默认按轮播顺序排列
 
+# 地区模型，用于管理地区信息
+class Region(models.Model):
+    # 地区名称，使用CharField存储，最大长度100，必须唯一
+    name = models.CharField(max_length=100, unique=True, verbose_name='地区名称')
+    # 父地区，使用ForeignKey建立自引用关系，允许为空
+    # 用于构建地区层级结构，如省、市、县
+    parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='父地区')
+    # 地区级别，使用IntegerField存储，默认值为1
+    # 用于标识地区层级，如1-省，2-市，3-县
+    level = models.IntegerField(default=1, verbose_name='地区级别')
+    # 显式定义objects管理器，解决IDE警告
+    objects = models.Manager()
+    
+    # 模型元数据配置
+    class Meta:
+        verbose_name = '地区信息'         # 模型的可读名称
+        verbose_name_plural = verbose_name  # 复数形式的可读名称
+        ordering = ['name']               # 默认按地区名称排序
+
+# 门票类型模型，用于管理不同类型的门票
+class TicketType(models.Model):
+    # 定义门票类型选择元组
+    TYPE_CHOICES = (
+        ('single', '单票'),       # 单票，适用于单个景点
+        ('package', '套票'),      # 套票，适用于多个景点或包含其他服务
+    )
+    
+    # 关联的景点，使用ForeignKey建立一对多关系，景点删除时门票类型也删除
+    scenic_spot = models.ForeignKey(ScenicSpot, on_delete=models.CASCADE, verbose_name='景点')
+    # 门票名称，使用CharField存储，最大长度100
+    name = models.CharField(max_length=100, verbose_name='门票名称')
+    # 门票类型，使用CharField存储，选择项来自TYPE_CHOICES
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='single', verbose_name='门票类型')
+    # 门票价格，使用DecimalField存储，最大10位数字，2位小数
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='门票价格')
+    # 库存数量，使用IntegerField存储，默认值为1000
+    stock = models.IntegerField(default=1000, verbose_name='库存数量')
+    # 是否激活，使用BooleanField存储，默认值为True
+    # 用于控制门票是否可购买
+    is_active = models.BooleanField(default=True, verbose_name='是否激活')
+    # 创建时间，使用DateTimeField存储，自动添加当前时间
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    # 更新时间，使用DateTimeField存储，自动更新为当前时间
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    # 显式定义objects管理器，解决IDE警告
+    objects = models.Manager()
+    
+    # 模型元数据配置
+    class Meta:
+        verbose_name = '门票类型'         # 模型的可读名称
+        verbose_name_plural = verbose_name  # 复数形式的可读名称
+        ordering = ['-created_at']         # 默认按创建时间倒序排列
+
 # 购物车模型，存储用户添加的景点门票
 class Cart(models.Model):
     # 关联的用户，使用ForeignKey建立一对多关系，用户删除时购物车记录也删除
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户')
     # 关联的景点，使用ForeignKey建立一对多关系，景点删除时购物车记录也删除
     scenic_spot = models.ForeignKey(ScenicSpot, on_delete=models.CASCADE, verbose_name='景点')
+    # 关联的门票类型，使用ForeignKey建立一对多关系，门票类型删除时购物车记录也删除
+    ticket_type = models.ForeignKey(TicketType, on_delete=models.CASCADE, null=True, blank=True, verbose_name='门票类型')
+    # 使用日期，使用DateField存储，允许为空
+    # 用于指定门票的使用日期
+    use_date = models.DateField(null=True, blank=True, verbose_name='使用日期')
     # 门票数量，使用IntegerField存储，默认值为1
     quantity = models.IntegerField(default=1, verbose_name='数量')
     # 创建时间，使用DateTimeField存储，自动添加当前时间
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     # 更新时间，使用DateTimeField存储，自动更新为当前时间
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
-    
     # 显式定义objects管理器，解决IDE警告
     objects = models.Manager()
     
@@ -137,6 +218,34 @@ class Cart(models.Model):
     class Meta:
         verbose_name = '购物车'          # 模型的可读名称
         verbose_name_plural = verbose_name  # 复数形式的可读名称
+        # 唯一约束：同一用户同一门票同一日期只能添加一次到购物车
+        unique_together = ('user', 'scenic_spot', 'ticket_type', 'use_date')
+
+# 景点留言模型，存储用户对景点的留言
+class ScenicSpotComment(models.Model):
+    # 关联的景点，使用ForeignKey建立一对多关系，景点删除时留言也删除
+    scenic_spot = models.ForeignKey(ScenicSpot, on_delete=models.CASCADE, verbose_name='景点')
+    # 关联的用户，使用ForeignKey建立一对多关系，用户删除时留言也删除
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户')
+    # 留言内容，使用TextField存储，支持长文本
+    content = models.TextField(verbose_name='留言内容')
+    # 回复内容，使用TextField存储，支持长文本，允许为空
+    reply = models.TextField(null=True, blank=True, verbose_name='回复内容')
+    # 回复时间，使用DateTimeField存储，自动添加当前时间，允许为空
+    reply_time = models.DateTimeField(null=True, blank=True, verbose_name='回复时间')
+    # 是否回复，使用BooleanField存储，默认值为False
+    # 用于标识留言是否已回复
+    is_replied = models.BooleanField(default=False, verbose_name='是否回复')
+    # 创建时间，使用DateTimeField存储，自动添加当前时间
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    # 显式定义objects管理器，解决IDE警告
+    objects = models.Manager()
+    
+    # 模型元数据配置
+    class Meta:
+        verbose_name = '景点留言'         # 模型的可读名称
+        verbose_name_plural = verbose_name  # 复数形式的可读名称
+        ordering = ['-created_at']         # 默认按创建时间倒序排列
 
 # 订单模型，存储用户的购票订单
 class Order(models.Model):
@@ -146,11 +255,17 @@ class Order(models.Model):
         (1, '已支付'),  # 用户已完成支付
         (2, '已取消'),  # 订单已取消
         (3, '已使用'),  # 门票已使用
+        (4, '已退款'),  # 门票已退款
     )
     # 关联的用户，使用ForeignKey建立一对多关系，用户删除时订单也删除
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户')
     # 关联的景点，使用ForeignKey建立一对多关系，景点删除时订单也删除
     scenic_spot = models.ForeignKey(ScenicSpot, on_delete=models.CASCADE, verbose_name='景点')
+    # 关联的门票类型，使用ForeignKey建立一对多关系，门票类型删除时订单也删除
+    ticket_type = models.ForeignKey(TicketType, on_delete=models.CASCADE, null=True, blank=True, verbose_name='门票类型')
+    # 使用日期，使用DateField存储，允许为空
+    # 用于指定门票的使用日期
+    use_date = models.DateField(null=True, blank=True, verbose_name='使用日期')
     # 门票数量，使用IntegerField存储
     quantity = models.IntegerField(verbose_name='数量')
     # 订单总价，使用DecimalField存储，最大10位数字，2位小数
@@ -159,11 +274,19 @@ class Order(models.Model):
     status = models.IntegerField(choices=STATUS_CHOICES, default=0, verbose_name='订单状态')
     # 订单号，使用CharField存储，最大长度50，必须唯一
     order_number = models.CharField(max_length=50, unique=True, verbose_name='订单号')
+    # 退款原因，使用TextField存储，允许为空
+    # 只有退款状态的订单才需要填写
+    refund_reason = models.TextField(null=True, blank=True, verbose_name='退款原因')
+    # 退款申请时间，使用DateTimeField存储，允许为空
+    refund_apply_time = models.DateTimeField(null=True, blank=True, verbose_name='退款申请时间')
+    # 退款审核时间，使用DateTimeField存储，允许为空
+    refund_audit_time = models.DateTimeField(null=True, blank=True, verbose_name='退款审核时间')
+    # 退款金额，使用DecimalField存储，最大10位数字，2位小数，允许为空
+    refund_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='退款金额')
     # 创建时间，使用DateTimeField存储，自动添加当前时间
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     # 更新时间，使用DateTimeField存储，自动更新为当前时间
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
-    
     # 显式定义objects管理器，解决IDE警告
     objects = models.Manager()
     
@@ -172,3 +295,39 @@ class Order(models.Model):
         verbose_name = '订单'            # 模型的可读名称
         verbose_name_plural = verbose_name  # 复数形式的可读名称
         ordering = ['-created_at']         # 默认按创建时间倒序排列
+
+# 收藏模型，用于用户收藏景点
+class Collection(models.Model):
+    # 关联的用户，使用ForeignKey建立一对多关系，用户删除时收藏记录也删除
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户')
+    # 关联的景点，使用ForeignKey建立一对多关系，景点删除时收藏记录也删除
+    scenic_spot = models.ForeignKey(ScenicSpot, on_delete=models.CASCADE, verbose_name='景点')
+    # 创建时间，使用DateTimeField存储，自动添加当前时间
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    # 显式定义objects管理器，解决IDE警告
+    objects = models.Manager()
+    
+    # 模型元数据配置
+    class Meta:
+        verbose_name = '收藏记录'         # 模型的可读名称
+        verbose_name_plural = verbose_name  # 复数形式的可读名称
+        # 唯一约束：一个用户只能收藏一个景点一次
+        unique_together = ('user', 'scenic_spot')
+        ordering = ['-created_at']         # 默认按创建时间倒序排列
+
+# 浏览历史模型，用于记录用户浏览景点的历史
+class BrowseHistory(models.Model):
+    # 关联的用户，使用ForeignKey建立一对多关系，用户删除时浏览历史也删除
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户')
+    # 关联的景点，使用ForeignKey建立一对多关系，景点删除时浏览历史也删除
+    scenic_spot = models.ForeignKey(ScenicSpot, on_delete=models.CASCADE, verbose_name='景点')
+    # 浏览时间，使用DateTimeField存储，自动添加当前时间
+    browse_time = models.DateTimeField(auto_now_add=True, verbose_name='浏览时间')
+    # 显式定义objects管理器，解决IDE警告
+    objects = models.Manager()
+    
+    # 模型元数据配置
+    class Meta:
+        verbose_name = '浏览历史'         # 模型的可读名称
+        verbose_name_plural = verbose_name  # 复数形式的可读名称
+        ordering = ['-browse_time']        # 默认按浏览时间倒序排列

@@ -1,28 +1,128 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-    <div class="container mt-5">
-        <div class="row">
-            <div class="col-md-6">
-                <img src="{{ spot.image.url }}" class="img-fluid" alt="{{ spot.name }}">
+    <!-- 返回按钮 -->
+    <div class="container mt-4">
+        <a href="{% url 'ticket:scenic_spots' %}" class="btn btn-outline-secondary mb-4">
+            <i class="bi bi-arrow-left"></i> 返回景点列表
+        </a>
+    </div>
+
+    <!-- 景点详情容器 -->
+    <div class="container">
+        <!-- 景点头部：名称、分享、收藏 -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="text-center flex-grow-1">{{ spot.name }}</h1>
+            <div class="d-flex gap-3">
+                <!-- 分享图标 -->
+                <button class="btn btn-outline-primary" title="分享">
+                    <i class="bi bi-share"></i>
+                </button>
+                <!-- 收藏图标 -->
+                <button class="btn btn-outline-danger" title="收藏">
+                    <i class="bi bi-heart"></i>
+                </button>
             </div>
-            <div class="col-md-6">
-                <h2>{{ spot.name }}</h2>
-                <p class="text-danger fs-3">¥{{ spot.price }}</p>
-                <p class="mt-3"><strong>地址：</strong>{{ spot.address }}</p>
-                <p><strong>开放时间：</strong>{{ spot.opening_hours }}</p>
-                <div class="mt-4">
-                    <a href="#" class="btn btn-primary btn-lg">立即预订</a>
-                    <a href="#" class="btn btn-outline-primary btn-lg ms-2">加入购物车</a>
+        </div>
+
+        <!-- 景点图片 -->
+        <div class="mb-5">
+            <div class="card">
+                <img src="{{ spot.image.url }}" class="card-img-top" alt="{{ spot.name }}" style="height: 400px; object-fit: cover;">
+            </div>
+        </div>
+
+        <!-- 景点信息卡片 -->
+        <div class="row mb-5">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body">
+                        <!-- 评分和基本信息 -->
+                        <div class="d-flex align-items-center mb-4">
+                            <div class="text-warning fs-3 me-3">
+                                <i class="bi bi-star-fill"></i> {{ spot.rating }}
+                            </div>
+                            <span class="text-muted">{{ spot.booking_count }}人已预约 / 共{{ spot.total_tickets }}张票</span>
+                        </div>
+
+                        <!-- 景点名称 -->
+                        <h2 class="card-title mb-3">{{ spot.name }}</h2>
+
+                        <!-- 地点 -->
+                        <p class="card-text mb-3">
+                            <strong>地点：</strong>
+                            <i class="bi bi-geo-alt-fill text-primary"></i> {{ spot.address }}
+                        </p>
+
+                        <!-- 标签 -->
+                        <div class="mb-3">
+                            <strong>标签：</strong>
+                            {% for tag in tags_list %}
+                                <span class="badge bg-primary me-1">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+
+                        <!-- 开放时间 -->
+                        <p class="card-text mb-3">
+                            <strong>开放时间：</strong>
+                            <i class="bi bi-clock-fill text-success"></i> {{ spot.opening_hours }}
+                        </p>
+
+                        <!-- 景点描述 -->
+                        <div class="mt-4">
+                            <h3>景点介绍</h3>
+                            <p class="mt-2">{{ spot.description }}</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="mt-5">
-            <h3>景点介绍</h3>
+
+        <!-- 留言区 -->
+        <div class="mb-5">
+            <h3>用户留言</h3>
             <div class="card mt-3">
                 <div class="card-body">
-                    <p>{{ spot.description }}</p>
+                    {% if comments.exists %}
+                        {% for comment in comments %}
+                            <div class="media mb-4">
+                                <!-- 用户头像 -->
+                                <img src="{% if comment.user.avatar %}{{ comment.user.avatar.url }}{% else %}{% static 'default_avatar.jpg' %}{% endif %}" 
+                                     class="mr-3 rounded-circle" 
+                                     alt="{{ comment.user.username }}" 
+                                     style="width: 50px; height: 50px; object-fit: cover;">
+                                <div class="media-body ms-3">
+                                    <!-- 用户名和时间 -->
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="mt-0">{{ comment.user.username }}</h5>
+                                        <small class="text-muted">{{ comment.created_at|date:'Y-m-d H:i' }}</small>
+                                    </div>
+                                    <!-- 留言内容 -->
+                                    <p>{{ comment.content }}</p>
+                                </div>
+                            </div>
+                            {% if not forloop.last %}
+                                <hr>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-center text-muted">暂无留言，快来发表您的看法吧！</p>
+                    {% endif %}
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 漂浮购票按钮 -->
+    <div class="fixed-bottom mb-5 me-5 d-flex justify-content-end">
+        <div class="bg-white p-3 rounded-3 shadow-lg d-flex align-items-center gap-3">
+            <div>
+                <p class="mb-0"><small>门票价格</small></p>
+                <p class="text-danger fs-2 mb-0">¥{{ spot.price }}</p>
+            </div>
+            <div>
+                <a href="#" class="btn btn-primary btn-lg">立即购票</a>
             </div>
         </div>
     </div>

@@ -1,0 +1,75 @@
+{% extends 'scenic_admin/base.html' %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3>编辑景点</h3>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="name" class="form-label">名称</label>
+                        <input type="text" class="form-control" id="name" name="name" value="故宫博物院" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="price" class="form-label">门票价格</label>
+                        <input type="number" class="form-control" id="price" name="price" step="0.01" min="0" value="60.00" required>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="address" class="form-label">地址</label>
+                    <input type="text" class="form-control" id="address" name="address" value="北京市东城区景山前街4号" required>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="stock" class="form-label">库存</label>
+                        <input type="number" class="form-control" id="stock" name="stock" min="0" value="1000" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="status" class="form-label">状态</label>
+                        <select class="form-select" id="status" name="status" required>
+                            <option value="1" selected>上架</option>
+                            <option value="0">下架</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="category" class="form-label">景点分类</label>
+                    <select class="form-select" id="category" name="category" required>
+                        <option value="natural">自然风光类</option>
+                        <option value="historical" selected>历史遗迹类</option>
+                        <option value="folklore">民俗文化类</option>
+                        <option value="modern">现代都市类</option>
+                        <option value="leisure">休闲度假类</option>
+                        <option value="theme">主题乐园类</option>
+                        <option value="religious">宗教文化类</option>
+                        <option value="rural">农业乡村类</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="cover" class="form-label">封面</label>
+                    <div class="mb-2">
+                        <img src="" alt="当前封面" style="max-width: 200px; max-height: 200px; object-fit: cover;">
+                    </div>
+                    <input type="file" class="form-control" id="cover" name="cover" accept="image/*">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="description" class="form-label">详细描述</label>
+                    <textarea class="form-control" id="description" name="description" rows="5" required>故宫博物院，旧称为紫禁城，位于北京中轴线的中心，是中国明清两代的皇家宫殿，是世界上现存规模最大、保存最为完整的木质结构古建筑之一，是国家AAAAA级旅游景区，1961年被列为第一批全国重点文物保护单位；1987年被列为世界文化遗产。</textarea>
+                </div>
+                
+                <div class="d-flex gap-2 justify-content-end">
+                    <a href="{% url 'ticket:scenic_admin_scenic_spots' %}" class="btn btn-secondary">取消</a>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}

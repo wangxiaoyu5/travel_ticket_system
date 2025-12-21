@@ -1,0 +1,64 @@
+{% extends 'admin/base.html' %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3>资讯管理</h3>
+        </div>
+        <div class="card-body">
+            <!-- 操作栏 -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="btn-group">
+                        <a href="{% url 'ticket:admin_news_list' %}" class="btn btn-primary">全部资讯({{ total_news }})</a>
+                    </div>
+                    <a href="{% url 'ticket:admin_add_news' %}" class="btn btn-success ms-2">
+                        <i class="bi bi-plus-circle me-1"></i> 新增资讯
+                    </a>
+                </div>
+                <div class="col-md-6">
+                    <form method="get" action="{% url 'ticket:admin_news_list' %}" class="input-group">
+                        <input type="text" class="form-control" placeholder="请输入资讯标题搜索" name="search" value="{{ search_keyword }}">
+                        <button class="btn btn-primary" type="submit">搜索</button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- 资讯列表 -->
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th scope="col">标题</th>
+                        <th scope="col">分类</th>
+                        <th scope="col">创建时间</th>
+                        <th scope="col">状态</th>
+                        <th scope="col">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for news in news_list %}
+                    <tr>
+                        <td>{{ news.title }}</td>
+                        <td>资讯</td>
+                        <td>{{ news.created_at|date:"Y-m-d H:i:s" }}</td>
+                        <td>
+                            <span class="badge bg-success">已发布</span>
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-primary btn-sm">查看</button>
+                                <button type="button" class="btn btn-warning btn-sm">编辑</button>
+                                <button type="button" class="btn btn-danger btn-sm">删除</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">暂无资讯数据</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock content %}

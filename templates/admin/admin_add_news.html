@@ -1,0 +1,58 @@
+{% extends 'admin/base.html' %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3>新增资讯</h3>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">资讯标题 *</label>
+                            <input type="text" class="form-control" id="title" name="title" required placeholder="请输入资讯标题">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="category" class="form-label">资讯分类 *</label>
+                            <select class="form-select" id="category" name="category" required>
+                                <option value="">请选择分类</option>
+                                <option value="travel_guide">旅游攻略</option>
+                                <option value="scenic_recommendation">景点推荐</option>
+                                <option value="event_info">活动资讯</option>
+                                <option value="industry_news">行业动态</option>
+                                <option value="other">其他资讯</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="image" class="form-label">资讯图片</label>
+                            <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                            <div class="form-text">支持 JPG、PNG 格式，建议尺寸 1200x600</div>
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_active" name="is_active" checked>
+                            <label class="form-check-label" for="is_active">立即发布</label>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="content" class="form-label">资讯内容 *</label>
+                            <textarea class="form-control" id="content" name="content" rows="12" required placeholder="请输入资讯内容"></textarea>
+                            <div class="form-text">支持HTML格式，可添加富文本内容</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2 justify-content-end">
+                    <a href="{% url 'ticket:admin_news_list' %}" class="btn btn-secondary">取消</a>
+                    <button type="submit" class="btn btn-primary">保存并发布</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock content %}

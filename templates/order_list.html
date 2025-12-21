@@ -1,0 +1,67 @@
+<!-- 订单列表模板片段，用于显示不同状态的订单 -->
+<div class="card">
+    <div class="card-body">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">订单状态</th>
+                    <th scope="col">订单号</th>
+                    <th scope="col">下单时间</th>
+                    <th scope="col">景点名称</th>
+                    <th scope="col">数量</th>
+                    <th scope="col">总金额</th>
+                    <th scope="col">使用日期</th>
+                    <th scope="col">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if orders %}    
+                    {% for order in orders %}
+                        {% if status_filter == 'all' or order.status == status_filter %}
+                            <tr>
+                                <td>
+                                    {% if order.status == 0 %}
+                                        <span class="badge bg-warning text-dark">待支付</span>
+                                    {% elif order.status == 1 %}
+                                        <span class="badge bg-primary">已支付</span>
+                                    {% elif order.status == 2 %}
+                                        <span class="badge bg-secondary">已取消</span>
+                                    {% elif order.status == 3 %}
+                                        <span class="badge bg-success">已完成</span>
+                                    {% elif order.status == 4 %}
+                                        <span class="badge bg-info">已退款</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ order.order_number }}</td>
+                                <td>{{ order.created_at|date:"Y-m-d H:i:s" }}</td>
+                                <td>{{ order.scenic_spot.name }}</td>
+                                <td>{{ order.quantity }}</td>
+                                <td>¥{{ order.total_price }}</td>
+                                <td>{{ order.use_date|date:"Y-m-d" }}</td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        {% if order.status == 0 %}
+                                            <!-- 待支付订单 -->
+                                            <button type="button" class="btn btn-primary btn-sm">立即支付</button>
+                                            <button type="button" class="btn btn-danger btn-sm">取消订单</button>
+                                        {% endif %}
+                                        <!-- 所有状态都显示联系客服按钮 -->
+                                        <button type="button" class="btn btn-outline-secondary btn-sm">联系客服</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <!-- 订单为空时的提示 -->
+                    <tr>
+                        <td colspan="8" class="text-center py-5">
+                            <p>暂无相关订单记录</p>
+                            <a href="{% url 'ticket:scenic_spots' %}" class="btn btn-primary">去选景点</a>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>

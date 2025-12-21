@@ -1,0 +1,49 @@
+{% extends 'scenic_admin/base.html' %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3>门票类型管理</h3>
+        </div>
+        <div class="card-body">
+            <!-- 操作栏 -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-success">新增门票类型</button>
+                        <button type="button" class="btn btn-success">批量上架</button>
+                        <button type="button" class="btn btn-warning">批量下架</button>
+                        <button type="button" class="btn btn-danger">批量删除</button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="请输入门票类型名称搜索">
+                        <button class="btn btn-primary" type="button">搜索</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 门票类型列表 -->
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th scope="col">序号</th>
+                        <th scope="col">门票类型名称</th>
+                        <th scope="col">类型</th>
+                        <th scope="col">价格</th>
+                        <th scope="col">库存</th>
+                        <th scope="col">状态</th>
+                        <th scope="col">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 暂无门票类型数据 -->
+                    <tr>
+                        <td colspan="7" class="text-center">暂无门票类型数据</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

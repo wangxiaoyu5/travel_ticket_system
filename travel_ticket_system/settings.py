@@ -9,151 +9,162 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
+# 导入系统模块
 import os
 from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# 项目根目录路径，用于构建其他路径
+# resolve() 解析路径，parent.parent 获取上两级目录（travel_ticket_system/travel_ticket_system/ -> travel_ticket_system/）
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
+# 快速开发设置 - 不适用于生产环境
+# 生产环境需参考部署清单：https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
+# 安全密钥：用于加密会话、密码重置令牌等
+# 生产环境必须保密，这里使用的是开发环境生成的默认密钥
 SECRET_KEY = "django-insecure-m%v1-p)ho9xx25&g!&&skaa+x!g!v9rg(n=p-rr4a^=ttxxz^-"
 
-# SECURITY WARNING: don't run with debug turned on in production!
+# 调试模式：开发环境设为True，生产环境必须设为False
+# True时会显示详细错误信息，便于调试
 DEBUG = True
 
+# 允许访问的主机列表
+# 开发环境允许本地访问，生产环境需配置实际域名
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
-# HTTPS配置
-SECURE_SSL_REDIRECT = not DEBUG  # 仅在生产环境重定向所有HTTP请求到HTTPS
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # 支持代理服务器的HTTPS
-SECURE_HSTS_SECONDS = 3600  # 1小时的HSTS策略
-SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG  # 仅在生产环境启用子域名HTTPS
-SECURE_HSTS_PRELOAD = not DEBUG  # 仅在生产环境允许浏览器预加载HSTS策略
+# HTTP配置 - 关闭HTTPS强制重定向（开发环境配置）
+SECURE_SSL_REDIRECT = False  # 不将HTTP请求重定向到HTTPS
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # 保留代理服务器支持，用于部署环境
+SECURE_HSTS_SECONDS = 0  # 禁用HTTP严格传输安全策略
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False  # 禁用子域名HSTS
+SECURE_HSTS_PRELOAD = False  # 禁止将站点加入浏览器HSTS预加载列表
 SECURE_BROWSER_XSS_FILTER = True  # 启用XSS防护
 SECURE_CONTENT_TYPE_NOSNIFF = True  # 防止浏览器猜测内容类型
 SECURE_REFERRER_POLICY = 'same-origin'  # 安全的Referer策略
 
-# 安全Cookie设置
-CSRF_COOKIE_SECURE = not DEBUG  # 仅在生产环境使用HTTPS传输CSRF Cookie
-SESSION_COOKIE_SECURE = not DEBUG  # 仅在生产环境使用HTTPS传输Session Cookie
+# Cookie设置 - 允许HTTP传输（开发环境配置）
+CSRF_COOKIE_SECURE = False  # 允许在HTTP下传输CSRF Cookie
+CSRF_COOKIE_HTTPONLY = False  # 允许JavaScript访问CSRF Cookie
+CSRF_COOKIE_SAMESITE = 'Lax'  # 允许跨站请求携带CSRF Cookie
+SESSION_COOKIE_SECURE = False  # 允许在HTTP下传输Session Cookie
+SESSION_COOKIE_HTTPONLY = False  # 允许JavaScript访问Session Cookie
+SESSION_COOKIE_SAMESITE = 'Lax'  # 允许跨站请求携带Session Cookie
 
-# 静态文件和媒体文件URL配置
-STATIC_URL = '/static/'
-MEDIA_URL = '/media/'
+# CSRF信任的域名列表，用于处理跨域请求
+# 开发环境允许本地地址
+CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8000', 'http://localhost:8000']
 
-# 确保在生产环境中使用HTTPS URL
-if not DEBUG:
-    STATIC_URL = 'https://' + ALLOWED_HOSTS[0] + '/static/'
-    MEDIA_URL = 'https://' + ALLOWED_HOSTS[0] + '/media/'
+# 静态文件URL配置
+STATIC_URL = '/static/'  # 静态文件访问URL
 
-# Application definition
+# 移除了HTTPS URL配置（开发环境使用HTTP）
+# if not DEBUG:
+#     STATIC_URL = 'https://' + ALLOWED_HOSTS[0] + '/static/'
+#     MEDIA_URL = 'https://' + ALLOWED_HOSTS[0] + '/media/'
 
+# 应用定义 - 注册的Django应用列表
 INSTALLED_APPS = [
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
-    "django.contrib.staticfiles",
-    'django_extensions',
-    'ticket.apps.TicketConfig',
-    'rest_framework',
-    'corsheaders',
+    "django.contrib.admin",  # Django默认后台管理应用
+    "django.contrib.auth",  # 认证系统
+    "django.contrib.contenttypes",  # 内容类型框架
+    "django.contrib.sessions",  # 会话管理
+    "django.contrib.messages",  # 消息框架
+    "django.contrib.staticfiles",  # 静态文件管理
+    'django_extensions',  # Django扩展工具集
+    'ticket.apps.TicketConfig',  # 自定义门票应用
+    'rest_framework',  # Django REST Framework
+    'corsheaders',  # 跨域资源共享中间件
 ]
 
+# 中间件配置 - 请求处理管道
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # 跨域中间件，需放在首位
 
-    "django.middleware.security.SecurityMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django.middleware.security.SecurityMiddleware",  # 安全中间件
+    "django.contrib.sessions.middleware.SessionMiddleware",  # 会话中间件
+    "django.middleware.common.CommonMiddleware",  # 通用中间件
+    "django.middleware.csrf.CsrfViewMiddleware",  # CSRF保护中间件
+    "django.contrib.auth.middleware.AuthenticationMiddleware",  # 认证中间件
+    "django.contrib.messages.middleware.MessageMiddleware",  # 消息中间件
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",  # 点击劫持保护
 ]
 
+# 根URL配置文件
 ROOT_URLCONF = "travel_ticket_system.urls"
 
+# 模板配置
 TEMPLATES = [
     {
-        "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / 'templates']
+        "BACKEND": "django.template.backends.django.DjangoTemplates",  # 使用Django模板引擎
+        "DIRS": [BASE_DIR / 'templates']  # 模板文件目录
         ,
-        "APP_DIRS": True,
+        "APP_DIRS": True,  # 是否搜索应用内的templates目录
         "OPTIONS": {
-            "context_processors": [
-                "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
+            "context_processors": [  # 模板上下文处理器
+                "django.template.context_processors.request",  # 提供request对象
+                "django.contrib.auth.context_processors.auth",  # 提供user对象
+                "django.contrib.messages.context_processors.messages",  # 提供messages
+                "django.template.context_processors.static",  # 提供静态文件URL
+                "django.template.context_processors.media",  # 提供媒体文件URL
             ],
         },
     },
 ]
 
+# WSGI应用入口
 WSGI_APPLICATION = "travel_ticket_system.wsgi.application"
+
 # 跨域设置
-CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_ALLOW_ALL = True  # 允许所有来源的跨域请求
 
 # 媒体文件配置
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/media/'  # 媒体文件访问URL
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # 媒体文件存储目录
 
-# 自定义用户模型
+# 自定义用户模型 - 使用ticket应用中的User模型
+# 替换Django默认的auth.User模型
 AUTH_USER_MODEL = 'ticket.User'
 
-# Database
-# https://docs.djangoproject.com/en/6.0/ref/settings/#databases
+# 登录URL - 用于@login_required装饰器重定向
+LOGIN_URL = '/login/'
 
+# 数据库配置
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'travel_ticket_system',
-        'USER': 'root',
-        'PASSWORD': 'root',
-        'HOST': '127.0.0.1',
-        'PORT': '3306',
+        'ENGINE': 'django.db.backends.mysql',  # 使用MySQL数据库引擎
+        'NAME': 'travel_ticket_system',  # 数据库名
+        'USER': 'root',  # 数据库用户名
+        'PASSWORD': 'root',  # 数据库密码
+        'HOST': '127.0.0.1',  # 数据库主机
+        'PORT': '3306',  # 数据库端口
     }
 }
 
-# Password validation
-# https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
-
+# 密码验证器 - 定义密码强度验证规则
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",  # 密码不能与用户属性太相似
     },
     {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",  # 密码最小长度验证
     },
     {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",  # 禁止使用常见密码
     },
     {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",  # 密码不能全是数字
     },
 ]
 
-# Internationalization
-# https://docs.djangoproject.com/en/6.0/topics/i18n/
+# 国际化配置
+LANGUAGE_CODE = "en-us"  # 语言代码
+TIME_ZONE = "UTC"  # 时区
+USE_I18N = True  # 启用国际化
+USE_TZ = True  # 启用时区支持
 
-LANGUAGE_CODE = "en-us"
-
-TIME_ZONE = "UTC"
-
-USE_I18N = True
-
-USE_TZ = True
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/6.0/howto/static-files/
-
-STATIC_URL = "static/"
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
-# 静态文件目录配置，用于开发环境
+# 静态文件配置
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')  # 静态文件收集目录（用于部署）
+# 开发环境静态文件目录配置
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'staticfiles'),
+    os.path.join(BASE_DIR, 'staticfiles'),  # 额外的静态文件目录
 ]

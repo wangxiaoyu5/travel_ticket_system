@@ -4,28 +4,55 @@
     <div class="container mt-5">
         <h2>资讯公告</h2>
         <div class="row mt-4">
-            {% for news_item in news %}
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    {% if news_item.image %}
-                    <img src="{{ news_item.image.url }}" class="card-img-top" alt="{{ news_item.title }}" height="200" object-fit="cover">
-                    {% endif %}
-                    <div class="card-body">
-                        <h5 class="card-title">
-                            {% if news_item.is_announcement %}
-                            <span class="badge bg-danger me-2">公告</span>
-                            {% endif %}
-                            {{ news_item.title }}
-                        </h5>
-                        <p class="card-text">{{ news_item.content|truncatechars:120 }}</p>
-                        <a href="{% url 'ticket:news_detail' news_id=news_item.id %}" class="btn btn-primary">查看详情</a>
+            <!-- 左侧筛选栏 -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>筛选</h5>
                     </div>
-                    <div class="card-footer">
-                        <small class="text-muted">{{ news_item.created_at|date:"Y-m-d H:i" }}</small>
+                    <div class="list-group">
+                        <a href="{% url 'ticket:news_list' %}?type=all" class="list-group-item list-group-item-action {% if filter_type == 'all' %}active{% endif %}">
+                            全部
+                        </a>
+                        <a href="{% url 'ticket:news_list' %}?type=news" class="list-group-item list-group-item-action {% if filter_type == 'news' %}active{% endif %}">
+                            资讯
+                        </a>
+                        <a href="{% url 'ticket:news_list' %}?type=announcement" class="list-group-item list-group-item-action {% if filter_type == 'announcement' %}active{% endif %}">
+                            公告
+                        </a>
                     </div>
                 </div>
             </div>
-            {% endfor %}
+            
+            <!-- 主内容区域 -->
+            <div class="col-md-9">
+                <div class="list-group">
+                    {% for news_item in news %}
+                    <div class="list-group-item mb-3 rounded shadow-sm">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">
+                                {% if news_item.is_announcement %}
+                                <span class="badge bg-danger me-2">公告</span>
+                                {% else %}
+                                <span class="badge bg-primary me-2">资讯</span>
+                                {% endif %}
+                                {{ news_item.title }}
+                            </h5>
+                            <small>{{ news_item.created_at|date:"Y-m-d" }}</small>
+                        </div>
+                        <p class="mb-3 text-muted">{{ news_item.content|truncatechars:150 }}</p>
+                        <a href="{% url 'ticket:news_detail' news_id=news_item.id %}" class="btn btn-outline-primary btn-sm">查看详情</a>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- 如果没有数据，显示提示信息 -->
+                {% if not news %}
+                <div class="alert alert-info text-center mt-4">
+                    暂无相关资讯公告
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 {% endblock %}

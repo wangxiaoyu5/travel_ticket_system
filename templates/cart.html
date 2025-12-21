@@ -2,30 +2,81 @@
 
 {% block content %}
     <div class="container mt-5">
-        <h2>购物车</h2>
+        <h2>我的购物车</h2>
         <div class="card mt-4">
             <div class="card-body">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th scope="col">景点名称</th>
-                            <th scope="col">价格</th>
-                            <th scope="col">数量</th>
-                            <th scope="col">小计</th>
-                            <th scope="col">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- 购物车为空时的提示 -->
-                        <tr>
-                            <td colspan="5" class="text-center py-5">
-                                <p>购物车为空，请先添加商品</p>
-                                <a href="{% url 'ticket:scenic_spots' %}" class="btn btn-primary">去选景点</a>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <form method="post">
+                    {% csrf_token %}
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th scope="col">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="selectAll">
+                                        <label class="form-check-label" for="selectAll">全选</label>
+                                    </div>
+                                </th>
+                                <th scope="col">景点名称</th>
+                                <th scope="col">购票类型</th>
+                                <th scope="col">使用日期</th>
+                                <th scope="col">数量</th>
+                                <th scope="col">单价</th>
+                                <th scope="col">总钱数</th>
+                                <th scope="col">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if cart_items %}    
+                                {% for item in cart_items %}
+                                    <tr>
+                                        <td>
+                                            <div class="form-check">
+                                                <input class="form-check-input itemCheckbox" type="checkbox" name="selected_items" value="{{ item.id }}">
+                                            </div>
+                                        </td>
+                                        <td>{{ item.scenic_spot.name }}</td>
+                                        <td>{{ item.ticket_type.name }}</td>
+                                        <td>{{ item.use_date|date:"Y-m-d" }}</td>
+                                        <td>{{ item.quantity }}</td>
+                                        <td>¥{{ item.ticket_type.price }}</td>
+                                        <td>¥{{ item.ticket_type.price|floatformat:2|add:0 }}</td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <!-- 移入收藏按钮 -->
+                                                <button type="button" class="btn btn-outline-primary btn-sm">
+                                                    <i class="bi bi-star"></i> 移入收藏
+                                                </button>
+                                                <!-- 删除按钮 -->
+                                                <button type="button" class="btn btn-outline-danger btn-sm">
+                                                    <i class="bi bi-trash"></i> 删除
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <!-- 购物车为空时的提示 -->
+                                <tr>
+                                    <td colspan="8" class="text-center py-5">
+                                        <p>购物车为空，请先添加商品</p>
+                                        <a href="{% url 'ticket:scenic_spots' %}" class="btn btn-primary">去选景点</a>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </form>
             </div>
         </div>
     </div>
+    
+    <script>
+        // 全选/取消全选功能
+        document.getElementById('selectAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.itemCheckbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+    </script>
 {% endblock %}

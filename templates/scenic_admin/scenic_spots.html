@@ -1,0 +1,92 @@
+{% extends 'scenic_admin/base.html' %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3>景点信息管理</h3>
+        </div>
+        <div class="card-body">
+            <!-- 操作栏 -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="btn-group">
+                        <a href="{% url 'ticket:scenic_admin_add_scenic_spot' %}" class="btn btn-success">新增景点</a>
+                        <button type="button" class="btn btn-success">批量上架</button>
+                        <button type="button" class="btn btn-warning">批量下架</button>
+                        <button type="button" class="btn btn-danger">批量删除</button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="请输入景点名称搜索">
+                        <button class="btn btn-primary" type="button">搜索</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 景点列表 -->
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th scope="col">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="selectAll">
+                            </div>
+                        </th>
+                        <th scope="col">序号</th>
+                        <th scope="col">名称</th>
+                        <th scope="col">门票价格</th>
+                        <th scope="col">地址</th>
+                        <th scope="col">库存</th>
+                        <th scope="col">状态</th>
+                        <th scope="col">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for scenic in scenic_spots %}
+                    <tr>
+                        <td>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="{{ scenic.id }}">
+                            </div>
+                        </td>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ scenic.name }}</td>
+                        <td>¥{{ scenic.price|floatformat:2 }}</td>
+                        <td>{{ scenic.address }}</td>
+                        <td>{{ scenic.total_tickets }}</td>
+                        <td>
+                            {% if scenic.is_hot %}
+                            <span class="badge bg-warning">热门</span>
+                            {% else %}
+                            <span class="badge bg-secondary">普通</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{% url 'ticket:scenic_admin_edit_scenic_spot' spot_id=scenic.id %}" class="btn btn-primary btn-sm">编辑</a>
+                                <button type="button" class="btn btn-warning btn-sm">下架</button>
+                                <button type="button" class="btn btn-danger btn-sm">删除</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center">暂无景点数据</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        // 全选/取消全选功能
+        document.getElementById('selectAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.form-check-input:not(#selectAll)');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+    </script>
+{% endblock %}

@@ -15,6 +15,9 @@ urlpatterns = [
     # 登录URL：/login/ 映射到views.user_login视图函数，URL名称为'login'
     path('login/', views.user_login, name='login'),
     
+    # 注册URL：/register/ 映射到views.register视图函数，URL名称为'register'
+    path('register/', views.register, name='register'),
+    
     # 退出登录URL：/logout/ 映射到views.user_logout视图函数，URL名称为'logout'
     path('logout/', views.user_logout, name='logout'),
     
@@ -42,4 +45,62 @@ urlpatterns = [
     
     # 订单中心URL：/order_center/ 映射到views.order_center视图函数，URL名称为'order_center'
     path('order_center/', views.order_center, name='order_center'),
+    
+    # 获取景点列表API：/api/scenic_spots/ 映射到views.get_scenic_spots_api视图函数
+    path('api/scenic_spots/', views.get_scenic_spots_api, name='get_scenic_spots_api'),
+    
+    # 景点管理员后台URL
+    # 控制台
+    path('scenic_admin/', views.scenic_admin_index, name='scenic_admin_index'),
+    # 景点信息管理
+    path('scenic_admin/scenic_spots/', views.scenic_admin_scenic_spots, name='scenic_admin_scenic_spots'),
+    # 景点编辑
+    path('scenic_admin/scenic_spot/edit/<int:spot_id>/', views.scenic_admin_edit_scenic_spot, name='scenic_admin_edit_scenic_spot'),
+    # 景点新增
+    path('scenic_admin/scenic_spot/add/', views.scenic_admin_add_scenic_spot, name='scenic_admin_add_scenic_spot'),
+    # 套票管理
+    path('scenic_admin/package_tickets/', views.scenic_admin_package_tickets, name='scenic_admin_package_tickets'),
+    # 套票新增
+    path('scenic_admin/package_ticket/add/', views.scenic_admin_add_package_ticket, name='scenic_admin_add_package_ticket'),
+    # 门票类型管理
+    path('scenic_admin/ticket_types/', views.scenic_admin_ticket_types, name='scenic_admin_ticket_types'),
+    # 订单管理
+    path('scenic_admin/orders/', views.scenic_admin_orders, name='scenic_admin_orders'),
+    # 留言管理
+    path('scenic_admin/comments/', views.scenic_admin_comments, name='scenic_admin_comments'),
+    # 数据统计
+    path('scenic_admin/statistics/', views.scenic_admin_statistics, name='scenic_admin_statistics'),
+    # 账户信息管理
+    path('scenic_admin/account/', views.scenic_admin_account, name='scenic_admin_account'),
+    # 资讯公告管理
+    path('scenic_admin/news_announcements/', views.scenic_admin_news_announcements, name='scenic_admin_news_announcements'),
+    
+    # 平台管理员URL
+    # 控制台
+    path('admin/', views.admin_index, name='admin_index'),
+    # 用户管理
+    path('admin/users/', views.admin_user_list, name='admin_user_list'),
+    path('admin/user/add/', views.admin_add_user, name='admin_add_user'),
+    path('admin/user/edit/<int:user_id>/', views.admin_edit_user, name='admin_edit_user'),
+    path('admin/user/delete/<int:user_id>/', views.admin_delete_user, name='admin_delete_user'),
+    # 景点管理
+    path('admin/scenic_spots/', views.admin_scenic_list, name='admin_scenic_list'),
+    path('admin/scenic_spot/add/', views.admin_add_scenic, name='admin_add_scenic'),
+    path('admin/scenic_spot/edit/<int:spot_id>/', views.admin_edit_scenic, name='admin_edit_scenic'),
+    # 地区管理
+    path('admin/regions/', views.admin_region_list, name='admin_region_list'),
+    # 订单管理
+    path('admin/orders/', views.admin_order_list, name='admin_order_list'),
+    # 留言管理
+    path('admin/comments/', views.admin_comment_list, name='admin_comment_list'),
+    # 公告管理
+    path('admin/announcements/', views.admin_announcement_list, name='admin_announcement_list'),
+    path('admin/announcement/add/', views.admin_add_announcement, name='admin_add_announcement'),
+    # 资讯管理
+    path('admin/news/', views.admin_news_list, name='admin_news_list'),
+    path('admin/news/add/', views.admin_add_news, name='admin_add_news'),
+    # 系统设置
+    path('admin/system/settings/', views.admin_system_settings, name='admin_system_settings'),
+    # 密码管理
+    path('admin/password/change/', views.admin_password_change, name='admin_password_change'),
 ]

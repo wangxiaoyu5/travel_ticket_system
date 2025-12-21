@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header text-center">
+                        <h3>用户注册</h3>
+                    </div>
+                    <div class="card-body">
+                        <form method="post">
+                            {% csrf_token %}
+                            <!-- 用户名输入 -->
+                            <div class="mb-3">
+                                <label for="username" class="form-label">用户名</label>
+                                <input type="text" class="form-control" id="username" name="username" required>
+                            </div>
+                            <!-- 邮箱输入 -->
+                            <div class="mb-3">
+                                <label for="email" class="form-label">邮箱</label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                            <!-- 密码输入 -->
+                            <div class="mb-3">
+                                <label for="password" class="form-label">密码</label>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                            </div>
+                            <!-- 确认密码输入 -->
+                            <div class="mb-3">
+                                <label for="confirm_password" class="form-label">确认密码</label>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                            </div>
+                            
+                            <!-- 角色选择 -->
+                            <div class="mb-3">
+                                <label class="form-label">用户角色</label>
+                                <div class="d-flex gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="role" id="role_visitor" value="0" checked>
+                                        <label class="form-check-label" for="role_visitor">
+                                            游客
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 注册和返回登录按钮 -->
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <a href="{% url 'ticket:login' %}" class="btn btn-secondary">返回登录</a>
+                                <button type="submit" class="btn btn-primary">注册</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

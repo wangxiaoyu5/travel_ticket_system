@@ -1,0 +1,98 @@
+{% extends 'admin/base.html' %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3>编辑景点信息</h3>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="row">
+                    <!-- 基本信息 -->
+                    <div class="col-md-6">
+                        <h5>基本信息</h5>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">景点名称 *</label>
+                            <input type="text" class="form-control" id="name" name="name" required placeholder="请输入景点名称" value="故宫博物院">
+                        </div>
+                        <div class="mb-3">
+                            <label for="region" class="form-label">景点地区 *</label>
+                            <input type="text" class="form-control" id="region" name="region" required placeholder="请输入景点地区" value="北京">
+                        </div>
+                        <div class="mb-3">
+                            <label for="category" class="form-label">景点分类 *</label>
+                            <select class="form-select" id="category" name="category" required>
+                                <option value="">请选择分类</option>
+                                <option value="natural" {% if 'natural' == scenic_spot.category %}selected{% endif %}>自然风光类</option>
+                                <option value="historical" {% if 'historical' == scenic_spot.category %}selected{% endif %}>历史遗迹类</option>
+                                <option value="folklore" {% if 'folklore' == scenic_spot.category %}selected{% endif %}>民俗文化类</option>
+                                <option value="modern" {% if 'modern' == scenic_spot.category %}selected{% endif %}>现代都市类</option>
+                                <option value="leisure" {% if 'leisure' == scenic_spot.category %}selected{% endif %}>休闲度假类</option>
+                                <option value="theme" {% if 'theme' == scenic_spot.category %}selected{% endif %}>主题乐园类</option>
+                                <option value="religious" {% if 'religious' == scenic_spot.category %}selected{% endif %}>宗教文化类</option>
+                                <option value="rural" {% if 'rural' == scenic_spot.category %}selected{% endif %}>农业乡村类</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="price" class="form-label">门票价格 *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">¥</span>
+                                <input type="number" step="0.01" min="0" class="form-control" id="price" name="price" required placeholder="请输入门票价格" value="60.00">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="total_tickets" class="form-label">总票数</label>
+                            <input type="number" min="0" class="form-control" id="total_tickets" name="total_tickets" value="1000" placeholder="请输入总票数">
+                        </div>
+                        <div class="mb-3">
+                            <label for="opening_hours" class="form-label">开放时间 *</label>
+                            <input type="text" class="form-control" id="opening_hours" name="opening_hours" required placeholder="请输入开放时间" value="08:30-17:00">
+                        </div>
+                        <div class="mb-3">
+                            <label for="tags" class="form-label">景点标签</label>
+                            <input type="text" class="form-control" id="tags" name="tags" placeholder="请输入景点标签，多个标签用逗号分隔" value="热门,文化遗址,必游景点">
+                            <div class="form-text">示例：热门,文化遗址,必游景点</div>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_hot" name="is_hot" checked>
+                            <label class="form-check-label" for="is_hot">设为热门景点</label>
+                        </div>
+                    </div>
+                    
+                    <!-- 详细信息 -->
+                    <div class="col-md-6">
+                        <h5>详细信息</h5>
+                        <div class="mb-3">
+                            <label for="image" class="form-label">景点图片 *</label>
+                            <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                            <div class="form-text">支持 JPG、PNG 格式，建议尺寸 800x600</div>
+                            <!-- 当前图片预览 -->
+                            <div class="mt-2">
+                                <label class="form-label">当前图片</label>
+                                <div class="d-flex align-items-center">
+                                    <img src="/media/scenic_spots/gugong.jpg" alt="景点图片" style="max-width: 200px; max-height: 150px; object-fit: cover; border-radius: 4px; margin-right: 10px;">
+                                    <span class="text-muted">gugong.jpg</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="address" class="form-label">景点地址 *</label>
+                            <textarea class="form-control" id="address" name="address" rows="2" required placeholder="请输入景点详细地址">北京市东城区景山前街4号</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">景点描述 *</label>
+                            <textarea class="form-control" id="description" name="description" rows="8" required placeholder="请输入景点详细描述">故宫博物院是中国最大的古代文化艺术博物馆，也是世界上现存规模最大、保存最为完整的木质结构古建筑之一。</textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 提交按钮 -->
+                <div class="mt-4 d-flex gap-2 justify-content-end">
+                    <a href="{% url 'ticket:admin_scenic_list' %}" class="btn btn-secondary">取消</a>
+                    <button type="submit" class="btn btn-primary">保存修改</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock content %}

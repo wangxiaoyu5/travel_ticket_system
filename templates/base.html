@@ -44,6 +44,7 @@
                         <a class="nav-link" href="{% url 'ticket:order_center' %}">订单中心</a>
                     </li>
                 </ul>
+                <!-- 用户信息 -->
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
                     <li class="nav-item dropdown">
@@ -54,7 +55,13 @@
                             {{ user.username }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            {% if user.role == 0 %}
                             <li><a class="dropdown-item" href="{% url 'ticket:personal_center' %}">个人中心</a></li>
+                            {% elif user.role == 1 %}
+                            <li><a class="dropdown-item" href="{% url 'ticket:scenic_admin_index' %}">景点管理后台</a></li>
+                            {% elif user.role == 2 %}
+                            <li><a class="dropdown-item" href="{% url 'ticket:admin_index' %}">网站管理后台</a></li>
+                            {% endif %}
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'ticket:logout' %}">退出登录</a></li>
                         </ul>

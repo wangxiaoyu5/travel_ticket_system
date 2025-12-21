@@ -1,0 +1,107 @@
+{% extends 'admin/base.html' %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3>用户管理</h3>
+        </div>
+        <div class="card-body">
+            <!-- 角色筛选和操作栏 -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="btn-group">
+                        <a href="{% url 'ticket:admin_user_list' %}" class="btn {% if not role_filter %}btn-primary{% else %}btn-outline-primary{% endif %}">全部用户({{ total_users }})</a>
+                        <a href="{% url 'ticket:admin_user_list' %}?role=0" class="btn {% if role_filter == '0' %}btn-primary{% else %}btn-outline-primary{% endif %}">普通用户({{ visitor_count }})</a>
+                        <a href="{% url 'ticket:admin_user_list' %}?role=1" class="btn {% if role_filter == '1' %}btn-primary{% else %}btn-outline-primary{% endif %}">景点管理员({{ scenic_admin_count }})</a>
+                        <a href="{% url 'ticket:admin_user_list' %}?role=2" class="btn {% if role_filter == '2' %}btn-primary{% else %}btn-outline-primary{% endif %}">平台管理员({{ platform_admin_count }})</a>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="btn-group float-end">
+                        <a href="{% url 'ticket:admin_add_user' %}" class="btn btn-success">
+                            <i class="bi bi-plus-circle me-1"></i> 新增用户
+                        </a>
+                        <button type="button" class="btn btn-danger">
+                            <i class="bi bi-trash me-1"></i> 批量删除
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 用户列表 -->
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th scope="col">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="selectAll">
+                            </div>
+                        </th>
+                        <th scope="col">用户ID</th>
+                        <th scope="col">用户名</th>
+                        <th scope="col">角色</th>
+                        <th scope="col">邮箱</th>
+                        <th scope="col">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="{{ user.id }}">
+                            </div>
+                        </td>
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.get_role_display }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{% url 'ticket:admin_edit_user' user_id=user.id %}" class="btn btn-primary btn-sm">编辑</a>
+                                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal_{{ user.id }}">删除</button>
+                            </div>
+                            
+                            <!-- 删除确认模态框 -->
+                            <div class="modal fade" id="deleteModal_{{ user.id }}" tabindex="-1" aria-labelledby="deleteModalLabel_{{ user.id }}" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="deleteModalLabel_{{ user.id }}">确认删除</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>确定要删除用户 <strong>{{ user.username }}</strong> 吗？此操作不可恢复。</p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                            <form method="post" action="{% url 'ticket:admin_delete_user' user_id=user.id %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger">删除</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">暂无用户数据</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        // 全选/取消全选功能
+        document.getElementById('selectAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.form-check-input:not(#selectAll)');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+    </script>
+{% endblock %}

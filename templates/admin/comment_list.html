@@ -1,0 +1,68 @@
+{% extends 'admin/base.html' %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3>留言管理</h3>
+        </div>
+        <div class="card-body">
+            <!-- 操作栏 -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="btn-group">
+                        <a href="{% url 'ticket:admin_comment_list' %}" class="btn {% if not replied_filter %}btn-primary{% else %}btn-outline-primary{% endif %}">全部留言({{ total_comments }})</a>
+                        <a href="{% url 'ticket:admin_comment_list' %}?replied=replied" class="btn {% if replied_filter == 'replied' %}btn-primary{% else %}btn-outline-primary{% endif %}">已回复({{ replied_comments }})</a>
+                        <a href="{% url 'ticket:admin_comment_list' %}?replied=unreplied" class="btn {% if replied_filter == 'unreplied' %}btn-primary{% else %}btn-outline-primary{% endif %}">未回复({{ unreplied_comments }})</a>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <form method="get" action="{% url 'ticket:admin_comment_list' %}" class="input-group">
+                        <input type="text" class="form-control" placeholder="请输入用户名或留言内容搜索" name="search" value="{{ search_keyword }}">
+                        <button class="btn btn-primary" type="submit">搜索</button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- 留言列表 -->
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th scope="col">用户</th>
+                        <th scope="col">景点</th>
+                        <th scope="col">留言内容</th>
+                        <th scope="col">留言时间</th>
+                        <th scope="col">回复状态</th>
+                        <th scope="col">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for comment in comments %}
+                    <tr>
+                        <td>{{ comment.user.username }}</td>
+                        <td>{{ comment.scenic_spot.name }}</td>
+                        <td>{{ comment.content|truncatechars:50 }}</td>
+                        <td>{{ comment.created_at|date:"Y-m-d H:i:s" }}</td>
+                        <td>
+                            {% if comment.is_replied %}
+                            <span class="badge bg-success">已回复</span>
+                            {% else %}
+                            <span class="badge bg-warning">未回复</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-primary btn-sm">查看详情</button>
+                                <button type="button" class="btn btn-danger btn-sm">删除</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">暂无留言数据</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock content %}
