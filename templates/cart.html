@@ -39,7 +39,7 @@
                                         <td>{{ item.use_date|date:"Y-m-d" }}</td>
                                         <td>{{ item.quantity }}</td>
                                         <td>¥{{ item.ticket_type.price }}</td>
-                                        <td>¥{{ item.ticket_type.price|floatformat:2|add:0 }}</td>
+                                        <td>¥{{ item.total_price|floatformat:2 }}</td>
                                         <td>
                                             <div class="btn-group" role="group">
                                                 <!-- 移入收藏按钮 -->
@@ -65,6 +65,21 @@
                             {% endif %}
                         </tbody>
                     </table>
+                    
+                    <!-- 购物车底部：总价和操作按钮 -->
+                    {% if cart_items %}
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <div class="d-flex align-items-center">
+                                <span class="fs-5 me-3">总价：</span>
+                                <h4 class="text-danger mb-0" id="totalPrice">¥0.00</h4>
+                            </div>
+                            <div>
+                                <button type="submit" name="action" value="buy_now" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-credit-card"></i> 立即购买
+                                </button>
+                            </div>
+                        </div>
+                    {% endif %}
                 </form>
             </div>
         </div>
@@ -77,6 +92,33 @@
             checkboxes.forEach(checkbox => {
                 checkbox.checked = this.checked;
             });
+            updateTotalPrice();
         });
+        
+        // 单个商品选择功能
+        document.querySelectorAll('.itemCheckbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                // 检查是否所有商品都被选中
+                const allChecked = Array.from(document.querySelectorAll('.itemCheckbox')).every(cb => cb.checked);
+                document.getElementById('selectAll').checked = allChecked;
+                updateTotalPrice();
+            });
+        });
+        
+        // 更新总价
+        function updateTotalPrice() {
+            let total = 0;
+            document.querySelectorAll('.itemCheckbox:checked').forEach(checkbox => {
+                const row = checkbox.closest('tr');
+                // 第7个td显示的是每个商品的总价（单价×数量），直接累加即可
+                const totalPriceText = row.querySelector('td:nth-child(7)').textContent;
+                const itemTotalPrice = parseFloat(totalPriceText.replace('¥', ''));
+                total += itemTotalPrice;
+            });
+            document.getElementById('totalPrice').textContent = `¥${total.toFixed(2)}`;
+        }
+        
+        // 初始化时更新总价
+        document.addEventListener('DOMContentLoaded', updateTotalPrice);
     </script>
 {% endblock %}

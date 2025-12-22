@@ -3,6 +3,25 @@ from django.db import models
 # 导入Django的用户抽象模型和UserManager，用于自定义用户模型
 from django.contrib.auth.models import AbstractUser, UserManager
 
+# 景点分类模型，用于管理景点分类信息
+class Category(models.Model):
+    # 分类名称，使用CharField存储，最大长度50，必须唯一
+    name = models.CharField(max_length=50, unique=True, verbose_name='分类名称')
+    # 分类描述，使用TextField存储，支持长文本，允许为空
+    description = models.TextField(null=True, blank=True, verbose_name='分类描述')
+    # 创建时间，使用DateTimeField存储，自动添加当前时间
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    # 更新时间，使用DateTimeField存储，自动更新为当前时间
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    # 显式定义objects管理器，解决IDE警告
+    objects = models.Manager()
+    
+    # 模型元数据配置
+    class Meta:
+        verbose_name = '景点分类'       # 模型的可读名称
+        verbose_name_plural = verbose_name  # 复数形式的可读名称
+        ordering = ['name']             # 默认按分类名称排序
+
 # 自定义用户模型，继承自AbstractUser，支持三种角色
 class User(AbstractUser):
     # 使用UserManager作为管理器，支持create_user和create_superuser方法
@@ -43,22 +62,14 @@ class User(AbstractUser):
 
 # 景点信息模型，存储所有景点的详细信息
 class ScenicSpot(models.Model):
-    # 景点分类选择元组，定义了8种景点类型
     DoesNotExist = None
-    CATEGORY_CHOICES = (
-        ('natural', '自然风光类'),   # 如山水、森林、湖泊等自然景观
-        ('historical', '历史遗迹类'),  # 如古建筑、遗址、博物馆等
-        ('folklore', '民俗文化类'),  # 如民族村、民俗表演等
-        ('modern', '现代都市类'),    # 如城市地标、主题公园等
-        ('leisure', '休闲度假类'),   # 如度假村、温泉、海滩等
-        ('theme', '主题乐园类'),     # 如迪士尼、环球影城等
-        ('religious', '宗教文化类'),  # 如寺庙、教堂等宗教场所
-        ('rural', '农业乡村类'),     # 如农家乐、乡村旅游等
-    )
     
     # 关联的景点管理员，使用ForeignKey建立一对多关系，允许为空
     # 当关联的用户删除时，该字段设为NULL
     admin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='managed_scenic_spots', verbose_name='景点管理员')
+    # 关联的景点分类，使用ForeignKey建立多对一关系
+    # 当关联的分类删除时，该字段设为NULL
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='scenic_spots', verbose_name='分类')
     # 景点名称，使用CharField存储，最大长度100
     name = models.CharField(max_length=100, verbose_name='景点名称')
     # 景点描述，使用TextField存储，支持长文本
@@ -75,8 +86,6 @@ class ScenicSpot(models.Model):
     is_hot = models.BooleanField(default=False, verbose_name='是否热门')
     # 景点地区，使用CharField存储，最大长度50
     region = models.CharField(max_length=50, default='全国', verbose_name='地区')
-    # 景点分类，使用CharField存储，最大长度20，选择项来自CATEGORY_CHOICES
-    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='natural', verbose_name='分类')
     # 景点标签，使用CharField存储，最大长度100，用于存储多个标签，以逗号分隔
     tags = models.CharField(max_length=100, default='热门', verbose_name='标签', help_text='多个标签用逗号分隔')
     # 景点评分，使用DecimalField存储，最大3位数字，1位小数，默认0.0
@@ -224,6 +233,7 @@ class Cart(models.Model):
 # 景点留言模型，存储用户对景点的留言
 class ScenicSpotComment(models.Model):
     # 关联的景点，使用ForeignKey建立一对多关系，景点删除时留言也删除
+    DoesNotExist = None
     scenic_spot = models.ForeignKey(ScenicSpot, on_delete=models.CASCADE, verbose_name='景点')
     # 关联的用户，使用ForeignKey建立一对多关系，用户删除时留言也删除
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户')
@@ -250,6 +260,7 @@ class ScenicSpotComment(models.Model):
 # 订单模型，存储用户的购票订单
 class Order(models.Model):
     # 定义订单状态选择元组，用于限制订单状态取值范围
+    DoesNotExist = None
     STATUS_CHOICES = (
         (0, '待支付'),  # 订单已创建，等待用户支付
         (1, '已支付'),  # 用户已完成支付

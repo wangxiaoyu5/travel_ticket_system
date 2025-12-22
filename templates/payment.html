@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <!-- 返回按钮 -->
+    <div class="container mt-4">
+        <a href="{% url 'ticket:order_center' %}" class="btn btn-outline-secondary mb-4">
+            <i class="bi bi-arrow-left"></i> 返回订单中心
+        </a>
+    </div>
+
+    <!-- 支付页面主体 -->
+    <div class="container">
+        <div class="row">
+            <!-- 左侧订单信息 -->
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h4 class="card-title">订单信息</h4>
+                        <hr>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h6>订单号</h6>
+                                <p class="text-muted">{{ order.order_number }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>订单状态</h6>
+                                <span class="badge bg-warning">待支付</span>
+                            </div>
+                        </div>
+                        
+                        <h6>景点信息</h6>
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ order.scenic_spot.name }}</h5>
+                                <p class="card-text text-muted">{{ order.scenic_spot.address }}</p>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <small>门票类型：{{ order.ticket_type.name }}</small>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small>使用日期：{{ order.use_date }}</small>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <small>数量：{{ order.quantity }}张</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h6>用户信息</h6>
+                        <p>{{ order.user.username }} ({{ order.user.email }})</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">支付方式</h4>
+                        <hr>
+                        
+                        <form method="post" action="#">
+                            {% csrf_token %}
+                            
+                            <div class="mb-4">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="payment_method" id="alipay" value="alipay" checked>
+                                    <label class="form-check-label" for="alipay">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-alipay fs-3 me-3 text-info"></i>
+                                            <div>
+                                                <h6 class="mb-0">支付宝</h6>
+                                                <small class="text-muted">推荐使用，支持花呗、信用卡</small>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="payment_method" id="wechat" value="wechat">
+                                    <label class="form-check-label" for="wechat">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-wechat fs-3 me-3 text-success"></i>
+                                            <div>
+                                                <h6 class="mb-0">微信支付</h6>
+                                                <small class="text-muted">快速便捷，支持微信余额</small>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="radio" name="payment_method" id="creditcard" value="creditcard">
+                                    <label class="form-check-label" for="creditcard">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-credit-card fs-3 me-3 text-primary"></i>
+                                            <div>
+                                                <h6 class="mb-0">银行卡</h6>
+                                                <small class="text-muted">支持国内主流银行卡</small>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <h5>支付金额</h5>
+                                <h3 class="text-danger">¥{{ order.total_price }}</h3>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                <i class="bi bi-qr-code-scan"></i> 立即支付
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧支付说明 -->
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h4 class="card-title">支付说明</h4>
+                        <hr>
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle text-success me-2"></i>
+                                <span>支持多种支付方式</span>
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle text-success me-2"></i>
+                                <span>支付成功后，订单将自动更新</span>
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle text-success me-2"></i>
+                                <span>支付完成后可在订单中心查看</span>
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle text-success me-2"></i>
+                                <span>支持7天无理由退款</span>
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-info-circle text-warning me-2"></i>
+                                <span>支付超时时间：30分钟</span>
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-info-circle text-warning me-2"></i>
+                                <span>如有疑问，请联系客服</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">订单总计</h4>
+                        <hr>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>门票费用</span>
+                            <span>¥{{ order.total_price }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>服务费</span>
+                            <span>¥0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>优惠券</span>
+                            <span>¥0.00</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <h5>应付金额</h5>
+                            <h5 class="text-danger">¥{{ order.total_price }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

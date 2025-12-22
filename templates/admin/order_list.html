@@ -64,8 +64,100 @@
                         <td>{{ order.created_at|date:"Y-m-d H:i:s" }}</td>
                         <td>
                             <div class="btn-group">
-                                <button type="button" class="btn btn-primary btn-sm">查看详情</button>
-                                <button type="button" class="btn btn-danger btn-sm">删除</button>
+                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#detailModal_{{ order.id }}">查看详情</button>
+                                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal_{{ order.id }}">删除</button>
+                            </div>
+                            
+                            <!-- 查看详情模态框 -->
+                            <div class="modal fade" id="detailModal_{{ order.id }}" tabindex="-1" aria-labelledby="detailModalLabel_{{ order.id }}" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="detailModalLabel_{{ order.id }}">订单详情 - {{ order.order_number }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <h6>基本信息</h6>
+                                                    <ul class="list-unstyled">
+                                                        <li><strong>订单号：</strong>{{ order.order_number }}</li>
+                                                        <li><strong>用户：</strong>{{ order.user.username }} ({{ order.user.email }})</li>
+                                                        <li><strong>创建时间：</strong>{{ order.created_at|date:"Y-m-d H:i:s" }}</li>
+                                                        <li><strong>状态：</strong>
+                                                            {% if order.status == 0 %}
+                                                            <span class="badge bg-warning">待支付</span>
+                                                            {% elif order.status == 1 %}
+                                                            <span class="badge bg-success">已支付</span>
+                                                            {% elif order.status == 2 %}
+                                                            <span class="badge bg-danger">已取消</span>
+                                                            {% elif order.status == 3 %}
+                                                            <span class="badge bg-info">已使用</span>
+                                                            {% elif order.status == 4 %}
+                                                            <span class="badge bg-secondary">已退款</span>
+                                                            {% endif %}
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h6>景点信息</h6>
+                                                    <ul class="list-unstyled">
+                                                        <li><strong>景点名称：</strong>{{ order.scenic_spot.name }}</li>
+                                                        <li><strong>地区：</strong>{{ order.scenic_spot.region }}</li>
+                                                        <li><strong>地址：</strong>{{ order.scenic_spot.address }}</li>
+                                                        <li><strong>门票类型：</strong>{{ order.ticket_type.name|default:"普通票" }}</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                            <div class="row mt-3">
+                                                <div class="col-md-6">
+                                                    <h6>订单信息</h6>
+                                                    <ul class="list-unstyled">
+                                                        <li><strong>数量：</strong>{{ order.quantity }} 张</li>
+                                                        <li><strong>单价：</strong>¥{{ order.ticket_type.price|default:order.scenic_spot.price|floatformat:2 }}</li>
+                                                        <li><strong>总价：</strong>¥{{ order.total_price|floatformat:2 }}</li>
+                                                        <li><strong>使用日期：</strong>{{ order.use_date|date:"Y-m-d"|default:"未指定" }}</li>
+                                                    </ul>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h6>支付信息</h6>
+                                                    <ul class="list-unstyled">
+                                                        <li><strong>支付方式：</strong>{{ order.payment_method|default:"未支付" }}</li>
+                                                        <li><strong>支付时间：</strong>{{ order.payment_time|date:"Y-m-d H:i:s"|default:"未支付" }}</li>
+                                                        <li><strong>支付流水号：</strong>{{ order.payment_serial|default:"未支付" }}</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 删除确认模态框 -->
+                            <div class="modal fade" id="deleteModal_{{ order.id }}" tabindex="-1" aria-labelledby="deleteModalLabel_{{ order.id }}" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="deleteModalLabel_{{ order.id }}">确认删除</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>确定要删除订单 <strong>{{ order.order_number }}</strong> 吗？此操作不可恢复。</p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                            <form method="post" action="{% url 'ticket:admin_delete_order' order_id=order.id %}">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="status_filter" value="{{ status_filter }}">
+                                                <input type="hidden" name="search" value="{{ search_keyword }}">
+                                                <button type="submit" class="btn btn-danger">删除</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </td>
                     </tr>

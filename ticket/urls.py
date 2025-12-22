@@ -46,6 +46,18 @@ urlpatterns = [
     # 订单中心URL：/order_center/ 映射到views.order_center视图函数，URL名称为'order_center'
     path('order_center/', views.order_center, name='order_center'),
     
+    # 取消订单URL：/cancel_order/[订单ID]/ 映射到views.cancel_order视图函数
+    path('cancel_order/<int:order_id>/', views.cancel_order, name='cancel_order'),
+    
+    # 联系客服URL：/contact_service/ 映射到views.contact_service视图函数
+    path('contact_service/', views.contact_service, name='contact_service'),
+    
+    # 购票页面URL：/buy_ticket/[景点ID]/ 映射到views.buy_ticket视图函数
+    path('buy_ticket/<int:spot_id>/', views.buy_ticket, name='buy_ticket'),
+    
+    # 支付页面URL：/payment/[订单ID]/ 映射到views.payment视图函数
+    path('payment/<int:order_id>/', views.payment, name='payment'),
+
     # 获取景点列表API：/api/scenic_spots/ 映射到views.get_scenic_spots_api视图函数
     path('api/scenic_spots/', views.get_scenic_spots_api, name='get_scenic_spots_api'),
     
@@ -72,8 +84,10 @@ urlpatterns = [
     path('scenic_admin/statistics/', views.scenic_admin_statistics, name='scenic_admin_statistics'),
     # 账户信息管理
     path('scenic_admin/account/', views.scenic_admin_account, name='scenic_admin_account'),
-    # 资讯公告管理
-    path('scenic_admin/news_announcements/', views.scenic_admin_news_announcements, name='scenic_admin_news_announcements'),
+    # 公告管理
+    path('scenic_admin/announcements/', views.scenic_admin_announcements, name='scenic_admin_announcements'),
+    # 资讯管理
+    path('scenic_admin/news/', views.scenic_admin_news, name='scenic_admin_news'),
     
     # 平台管理员URL
     # 控制台
@@ -83,22 +97,32 @@ urlpatterns = [
     path('admin/user/add/', views.admin_add_user, name='admin_add_user'),
     path('admin/user/edit/<int:user_id>/', views.admin_edit_user, name='admin_edit_user'),
     path('admin/user/delete/<int:user_id>/', views.admin_delete_user, name='admin_delete_user'),
+    path('admin/users/batch_delete/', views.admin_batch_delete_users, name='admin_batch_delete_users'),
     # 景点管理
     path('admin/scenic_spots/', views.admin_scenic_list, name='admin_scenic_list'),
     path('admin/scenic_spot/add/', views.admin_add_scenic, name='admin_add_scenic'),
     path('admin/scenic_spot/edit/<int:spot_id>/', views.admin_edit_scenic, name='admin_edit_scenic'),
+    path('admin/scenic_spot/delete/<int:spot_id>/', views.admin_delete_scenic, name='admin_delete_scenic'),
+    path('admin/scenic_spots/batch_delete/', views.admin_batch_delete_scenic, name='admin_batch_delete_scenic'),
     # 地区管理
     path('admin/regions/', views.admin_region_list, name='admin_region_list'),
     # 订单管理
     path('admin/orders/', views.admin_order_list, name='admin_order_list'),
+    path('admin/order/delete/<int:order_id>/', views.admin_delete_order, name='admin_delete_order'),
     # 留言管理
     path('admin/comments/', views.admin_comment_list, name='admin_comment_list'),
+    path('admin/comment/reply/<int:comment_id>/', views.admin_reply_comment, name='admin_reply_comment'),
+    path('admin/comment/delete/<int:comment_id>/', views.admin_delete_comment, name='admin_delete_comment'),
     # 公告管理
     path('admin/announcements/', views.admin_announcement_list, name='admin_announcement_list'),
     path('admin/announcement/add/', views.admin_add_announcement, name='admin_add_announcement'),
+    path('admin/announcement/edit/<int:announcement_id>/', views.admin_edit_announcement, name='admin_edit_announcement'),
+    path('admin/announcement/delete/<int:announcement_id>/', views.admin_delete_announcement, name='admin_delete_announcement'),
     # 资讯管理
     path('admin/news/', views.admin_news_list, name='admin_news_list'),
     path('admin/news/add/', views.admin_add_news, name='admin_add_news'),
+    path('admin/news/edit/<int:news_id>/', views.admin_edit_news, name='admin_edit_news'),
+    path('admin/news/delete/<int:news_id>/', views.admin_delete_news, name='admin_delete_news'),
     # 系统设置
     path('admin/system/settings/', views.admin_system_settings, name='admin_system_settings'),
     # 密码管理

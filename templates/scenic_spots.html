@@ -91,7 +91,7 @@
                 <div class="row g-4">
                     {% for spot in spots %}
                     <div class="col-md-4">
-                        <div class="card h-100 shadow-sm border-0">
+                        <div class="card h-100 d-flex flex-column shadow-sm border-0">
                             <!-- 景点封面图 -->
                             <div class="position-relative">
                                 <img 
@@ -108,7 +108,7 @@
                             </div>
                             
                             <!-- 景点信息 -->
-                            <div class="card-body">
+                            <div class="card-body flex-grow-1">
                                 <!-- 景点名称 -->
                                 <h5 class="card-title mb-2">{{ spot.name }}</h5>
                                 
@@ -126,7 +126,12 @@
                                     {% endfor %}
                                 </div>
                                 
-                                <!-- 查看详情按钮 -->
+                                <!-- 价格显示 -->
+                                <p class="card-text text-danger fs-5 mb-3">¥{{ spot.price }}</p>
+                            </div>
+                            
+                            <!-- 查看详情按钮 -->
+                            <div class="card-footer bg-white border-top-0 pb-4 px-4">
                                 <a 
                                     href="{% url 'ticket:scenic_spot_detail' spot_id=spot.id %}" 
                                     class="btn btn-primary w-100"

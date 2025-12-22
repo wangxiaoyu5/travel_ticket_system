@@ -1,0 +1,389 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <!-- 购票须知弹窗 -->
+    <div class="modal fade" id="noticeModal" tabindex="-1" aria-labelledby="noticeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="noticeModalLabel">购票须知</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>1. 购票说明</h6>
+                    <p>请根据自身情况选择合适的门票类型，购买前请仔细阅读门票使用规则。</p>
+                    
+                    <h6>2. 使用期限</h6>
+                    <p>门票仅限选择的日期使用，过期作废。</p>
+                    
+                    <h6>3. 退改规则</h6>
+                    <p>请在使用日期前24小时申请退票，逾期不予受理。</p>
+                    
+                    <h6>4. 入园须知</h6>
+                    <p>请携带有效身份证件入园，儿童需由成人陪同。</p>
+                    
+                    <h6>5. 优惠政策</h6>
+                    <ul>
+                        <li>学生票：凭有效学生证购买</li>
+                        <li>老人票：65岁以上凭有效身份证件购买</li>
+                        <li>军人票：凭有效军官证购买</li>
+                        <li>记者票：凭有效记者证购买</li>
+                        <li>免票：1.2米以下儿童免费，需由成人陪同</li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">我已阅读并同意</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 返回按钮 -->
+    <div class="container mt-4">
+        <a href="{% url 'ticket:scenic_spot_detail' spot_id=spot.id %}" class="btn btn-outline-secondary mb-4">
+            <i class="bi bi-arrow-left"></i> 返回景点详情
+        </a>
+    </div>
+
+    <!-- 购票页面主体 -->
+    <div class="container">
+        <div class="row">
+            <!-- 右侧购票表单 -->
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title mb-4">门票购买</h4>
+                        
+                        <form method="post" action="#">
+                            {% csrf_token %}
+                            
+                            <!-- 选择日期时间 -->
+                            <div class="mb-4">
+                                <label for="useDate" class="form-label">使用日期</label>
+                                <input type="date" class="form-control" id="useDate" name="use_date" required value="{{ selected_use_date|default:'' }}">
+                            </div>
+                            
+                            <script>
+                                // 设置默认日期为当天日期
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    const today = new Date().toISOString().split('T')[0];
+                                    const useDateInput = document.getElementById('useDate');
+                                    if (!useDateInput.value) {
+                                        useDateInput.value = today;
+                                    }
+                                });
+                            </script>
+                            
+                            <!-- 选择门票类型 -->
+                            <div class="mb-4">
+                                <h5>门票类型</h5>
+                                
+                                <!-- 门票类型切换：单票/套票 -->
+                                <div class="btn-group mb-3" role="group" aria-label="门票类型">
+                                    <button type="button" class="btn btn-primary active" id="singleTicketBtn" onclick="switchTicketType('single')">
+                                        单票
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary" id="packageTicketBtn" onclick="switchTicketType('package')">
+                                        套票
+                                    </button>
+                                </div>
+                                
+                                <!-- 单票选项 -->
+                                <div id="singleTicketOptions" class="ticket-options">
+                                    <div class="row g-3">
+                                        {% if single_tickets.exists %}
+                                            {% for ticket in single_tickets %}
+                                            <div class="col-md-6">
+                                                {% if ticket.stock <= 0 %}
+                                                <div class="card ticket-card border cursor-not-allowed bg-light" style="opacity: 0.7;">
+                                                    <div class="card-body">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <h6 class="card-title mb-0">{{ ticket.name }}</h6>
+                                                            <span class="text-danger fw-bold">¥{{ ticket.price }}</span>
+                                                        </div>
+                                                        <p class="card-text text-sm text-muted mt-2">
+                                                            {% if '成人' in ticket.name %}
+                                                            适用于18-64周岁成人
+                                                            {% elif '学生' in ticket.name %}
+                                                            凭有效学生证使用
+                                                            {% elif '老人' in ticket.name %}
+                                                            适用于65周岁以上老人
+                                                            {% elif '军人' in ticket.name %}
+                                                            凭有效军官证使用
+                                                            {% elif '记者' in ticket.name %}
+                                                            凭有效记者证使用
+                                                            {% elif '免票' in ticket.name %}
+                                                            适用于1.2米以下儿童
+                                                            {% endif %}
+                                                        </p>
+                                                        <p class="card-text text-sm text-danger mt-1">
+                                                            <i class="bi bi-exclamation-triangle"></i> 门票已售罄
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                {% else %}
+                                                <div class="card ticket-card border cursor-pointer" onclick="selectTicket({{ ticket.id }}, '{{ ticket.name }}', {{ ticket.price }})"><input type="radio" name="ticket_type" value="{{ ticket.id }}" class="d-none">
+                                                    <div class="card-body">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <h6 class="card-title mb-0">{{ ticket.name }}</h6>
+                                                            <span class="text-danger fw-bold">¥{{ ticket.price }}</span>
+                                                        </div>
+                                                        <p class="card-text text-sm text-muted mt-2">
+                                                            {% if '成人' in ticket.name %}
+                                                            适用于18-64周岁成人
+                                                            {% elif '学生' in ticket.name %}
+                                                            凭有效学生证使用
+                                                            {% elif '老人' in ticket.name %}
+                                                            适用于65周岁以上老人
+                                                            {% elif '军人' in ticket.name %}
+                                                            凭有效军官证使用
+                                                            {% elif '记者' in ticket.name %}
+                                                            凭有效记者证使用
+                                                            {% elif '免票' in ticket.name %}
+                                                            适用于1.2米以下儿童
+                                                            {% endif %}
+                                                        </p>
+                                                        <p class="card-text text-sm text-success mt-1">
+                                                            <i class="bi bi-check-circle"></i> 库存充足：{{ ticket.stock }} 张
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            {% endfor %}
+                                        {% else %}
+                                            <div class="col-12">
+                                                <div class="alert alert-info">暂无单票类型</div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- 套票选项 -->
+                                <div id="packageTicketOptions" class="ticket-options" style="display: none;">
+                                    <div class="row g-3">
+                                        {% if package_tickets.exists %}
+                                            {% for ticket in package_tickets %}
+                                            <div class="col-md-6">
+                                                {% if ticket.stock <= 0 %}
+                                                <div class="card ticket-card border cursor-not-allowed bg-light" style="opacity: 0.7;">
+                                                    <div class="card-body">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <h6 class="card-title mb-0">{{ ticket.name }}</h6>
+                                                            <span class="text-danger fw-bold">¥{{ ticket.price }}</span>
+                                                        </div>
+                                                        <p class="card-text text-sm text-muted mt-2">套票包含多个景点或服务</p>
+                                                        <p class="card-text text-sm text-danger mt-1">
+                                                            <i class="bi bi-exclamation-triangle"></i> 门票已售罄
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                {% else %}
+                                                <div class="card ticket-card border cursor-pointer" onclick="selectTicket({{ ticket.id }}, '{{ ticket.name }}', {{ ticket.price }})"><input type="radio" name="ticket_type" value="{{ ticket.id }}" class="d-none">
+                                                    <div class="card-body">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <h6 class="card-title mb-0">{{ ticket.name }}</h6>
+                                                            <span class="text-danger fw-bold">¥{{ ticket.price }}</span>
+                                                        </div>
+                                                        <p class="card-text text-sm text-muted mt-2">套票包含多个景点或服务</p>
+                                                        <p class="card-text text-sm text-success mt-1">
+                                                            <i class="bi bi-check-circle"></i> 库存充足：{{ ticket.stock }} 张
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            {% endfor %}
+                                        {% else %}
+                                            <div class="col-12">
+                                                <div class="alert alert-info">暂无套票类型</div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 选择数量 -->
+                            <div class="mb-4">
+                                <label for="quantity" class="form-label">数量</label>
+                                <div class="input-group">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="decreaseQuantity()">
+                                        <i class="bi bi-dash"></i>
+                                    </button>
+                                    <input type="number" class="form-control text-center" id="quantity" name="quantity" value="{{ selected_quantity|default:1 }}" min="1" max="10">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="increaseQuantity()">
+                                        <i class="bi bi-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- 总价显示 -->
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">总价</h5>
+                                    <h4 class="text-danger mb-0" id="totalPrice">¥{{ spot.price }}</h4>
+                                </div>
+                            </div>
+                            
+                            <!-- 操作按钮 -->
+                            <div class="d-flex gap-3">
+                                <button type="submit" class="btn btn-primary flex-grow-1" name="action" value="buy_now" onclick="return validateForm()">
+                                    <i class="bi bi-credit-card"></i> 直接购买
+                                </button>
+                                <button type="submit" class="btn btn-outline-primary flex-grow-1" name="action" value="add_to_cart" onclick="return validateForm()">
+                                    <i class="bi bi-cart-plus"></i> 加入购物车
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // 页面加载时显示购票须知弹窗
+        document.addEventListener('DOMContentLoaded', function() {
+            var noticeModal = new bootstrap.Modal(document.getElementById('noticeModal'));
+            noticeModal.show();
+        });
+        
+        // 切换门票类型（单票/套票）
+        function switchTicketType(type) {
+            const singleBtn = document.getElementById('singleTicketBtn');
+            const packageBtn = document.getElementById('packageTicketBtn');
+            const singleOptions = document.getElementById('singleTicketOptions');
+            const packageOptions = document.getElementById('packageTicketOptions');
+            
+            if (type === 'single') {
+                // 切换到单票
+                singleBtn.classList.remove('btn-outline-primary');
+                singleBtn.classList.add('btn-primary');
+                packageBtn.classList.remove('btn-primary');
+                packageBtn.classList.add('btn-outline-primary');
+                singleOptions.style.display = 'block';
+                packageOptions.style.display = 'none';
+            } else {
+                // 切换到套票
+                packageBtn.classList.remove('btn-outline-primary');
+                packageBtn.classList.add('btn-primary');
+                singleBtn.classList.remove('btn-primary');
+                singleBtn.classList.add('btn-outline-primary');
+                packageOptions.style.display = 'block';
+                singleOptions.style.display = 'none';
+            }
+            
+            // 重置选择，确保切换后没有选中的门票
+            resetTicketSelection();
+        }
+        
+        // 选择门票
+        function selectTicket(ticketId, ticketName, ticketPrice) {
+            // 移除所有选中状态
+            document.querySelectorAll('.ticket-card').forEach(card => {
+                card.classList.remove('border-primary', 'shadow');
+                // 确保所有卡片都是默认的边框颜色
+                card.classList.remove('border-danger', 'border-success', 'border-warning');
+            });
+            
+            // 添加当前选中状态
+            const selectedCard = document.querySelector(`input[name="ticket_type"][value="${ticketId}"]`).closest('.ticket-card');
+            selectedCard.classList.add('border-primary', 'shadow');
+            
+            // 选中对应的单选框
+            const radioInput = selectedCard.querySelector('input[name="ticket_type"]');
+            radioInput.checked = true;
+            
+            // 更新总价
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const totalPrice = ticketPrice * quantity;
+            document.getElementById('totalPrice').textContent = `¥${totalPrice.toFixed(2)}`;
+        }
+        
+        // 重置门票选择
+        function resetTicketSelection() {
+            // 移除所有选中状态
+            document.querySelectorAll('.ticket-card').forEach(card => {
+                card.classList.remove('border-primary', 'shadow');
+            });
+            
+            // 取消所有单选框选中
+            document.querySelectorAll('input[name="ticket_type"]').forEach(input => {
+                input.checked = false;
+            });
+            
+            // 更新总价为默认值
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const totalPrice = {{ spot.price }} * quantity;
+            document.getElementById('totalPrice').textContent = `¥${totalPrice.toFixed(2)}`;
+        }
+        
+        // 增加数量
+        function increaseQuantity() {
+            const quantityInput = document.getElementById('quantity');
+            let currentValue = parseInt(quantityInput.value);
+            const maxValue = parseInt(quantityInput.max);
+            if (currentValue < maxValue) {
+                quantityInput.value = currentValue + 1;
+                updateTotalPriceFromInputs();
+            }
+        }
+        
+        // 减少数量
+        function decreaseQuantity() {
+            const quantityInput = document.getElementById('quantity');
+            let currentValue = parseInt(quantityInput.value);
+            const minValue = parseInt(quantityInput.min);
+            if (currentValue > minValue) {
+                quantityInput.value = currentValue - 1;
+                updateTotalPriceFromInputs();
+            }
+        }
+        
+        // 为数量输入框添加change事件监听器
+        document.getElementById('quantity').addEventListener('change', updateTotalPriceFromInputs);
+        
+        // 从输入框更新总价
+        function updateTotalPriceFromInputs() {
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const selectedTicket = document.querySelector('input[name="ticket_type"]:checked');
+            if (selectedTicket) {
+                // 获取选中门票的价格
+                const ticketCard = selectedTicket.closest('.ticket-card');
+                const ticketPriceText = ticketCard.querySelector('.text-danger').textContent;
+                const ticketPrice = parseFloat(ticketPriceText.replace('¥', ''));
+                const totalPrice = ticketPrice * quantity;
+                document.getElementById('totalPrice').textContent = `¥${totalPrice.toFixed(2)}`;
+            } else {
+                // 没有选中门票，使用景点默认价格
+                const totalPrice = {{ spot.price }} * quantity;
+                document.getElementById('totalPrice').textContent = `¥${totalPrice.toFixed(2)}`;
+            }
+        }
+        
+        // 表单验证：检查是否选择了门票类型
+        function validateForm() {
+            const selectedTicket = document.querySelector('input[name="ticket_type"]:checked');
+            if (!selectedTicket) {
+                alert('请选择门票类型');
+                return false;
+            }
+            return true;
+        }
+    </script>
+
+    <!-- 自定义CSS -->
+    <style>
+        .ticket-card:hover {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+        .ticket-card input:checked + .card-body {
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+        .cursor-pointer {
+            cursor: pointer;
+        }
+    </style>
+{% endblock %}

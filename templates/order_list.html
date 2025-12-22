@@ -39,14 +39,17 @@
                                 <td>¥{{ order.total_price }}</td>
                                 <td>{{ order.use_date|date:"Y-m-d" }}</td>
                                 <td>
-                                    <div class="btn-group" role="group">
+                                    <div class="btn-group" role="group" aria-label="订单操作">
                                         {% if order.status == 0 %}
                                             <!-- 待支付订单 -->
-                                            <button type="button" class="btn btn-primary btn-sm">立即支付</button>
-                                            <button type="button" class="btn btn-danger btn-sm">取消订单</button>
+                                            <a href="{% url 'ticket:payment' order_id=order.id %}" class="btn btn-primary btn-sm">立即支付</a>
+                                            <form method="post" action="{% url 'ticket:cancel_order' order_id=order.id %}" style="display: inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('确定要取消这个订单吗？')">取消订单</button>
+                                            </form>
                                         {% endif %}
                                         <!-- 所有状态都显示联系客服按钮 -->
-                                        <button type="button" class="btn btn-outline-secondary btn-sm">联系客服</button>
+                                        <a href="{% url 'ticket:contact_service' %}" class="btn btn-outline-secondary btn-sm">联系客服</a>
                                     </div>
                                 </td>
                             </tr>

@@ -12,7 +12,7 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect, reverse
 
 # 导入自定义模型，用于数据库查询
-from .models import ScenicSpot, News, Carousel, User, Cart, Order, ScenicSpotComment
+from .models import ScenicSpot, News, Carousel, User, Cart, Order, ScenicSpotComment, TicketType
 
 
 # 首页视图函数，处理网站首页的请求
@@ -360,10 +360,15 @@ def scenic_admin_account(request):
     return render(request, 'scenic_admin/account.html')
 
 
-# 资讯公告管理视图
+# 公告管理视图
 @scenic_admin_required
-def scenic_admin_news_announcements(request):
-    return render(request, 'scenic_admin/news_announcements.html')
+def scenic_admin_announcements(request):
+    return render(request, 'scenic_admin/announcements.html')
+
+# 资讯管理视图
+@scenic_admin_required
+def scenic_admin_news(request):
+    return render(request, 'scenic_admin/news.html')
 
 
 # 平台管理员后台视图函数，需要登录且角色为平台管理员才能访问
@@ -452,59 +457,110 @@ def admin_user_list(request):
 # 新增用户视图
 @admin_required
 def admin_add_user(request):
+    # 获取系统中的所有景点
+    scenic_spots = ScenicSpot.objects.all()
+    
     if request.method == 'POST':
         # 从POST请求中获取表单数据
         username = request.POST.get('username')
         email = request.POST.get('email')
         password = request.POST.get('password')
         confirm_password = request.POST.get('confirm_password')
-        role = request.POST.get('role')
+        role = request.POST.get('role')  # 获取角色值
+        scenic_spot_id = request.POST.get('scenic_spot')
 
-        # 表单验证
-        if not username or not email or not password:
-            messages.error(request, '用户名、邮箱和密码不能为空')
-            return render(request, 'admin/add_user.html')
-
-        if password != confirm_password:
-            messages.error(request, '两次输入的密码不一致')
-            return render(request, 'admin/add_user.html')
-
-        # 检查用户名是否已存在
-        if User.objects.filter(username=username).exists():
-            messages.error(request, '用户名已存在')
-            return render(request, 'admin/add_user.html')
-
-        # 检查邮箱是否已存在
-        if User.objects.filter(email=email).exists():
-            messages.error(request, '邮箱已被注册')
-            return render(request, 'admin/add_user.html')
-
+        # 确保role有值，默认为'0'
+        if not role:
+            role = '0'
+        
         try:
-            # 创建新用户，使用create_user方法会自动加密密码
+            # 调试信息
+            print(f"=== 表单提交调试信息 ===")
+            print(f"用户名: {username}")
+            print(f"邮箱: {email}")
+            print(f"角色: {role}")
+            print(f"景点ID: {scenic_spot_id}")
+            print(f"密码: {password}")
+            print(f"确认密码: {confirm_password}")
+            
+            # 表单验证
+            if not username or not email or not password:
+                print("错误: 用户名、邮箱和密码不能为空")
+                messages.error(request, '用户名、邮箱和密码不能为空')
+                return render(request, 'admin/add_user.html', {'scenic_spots': scenic_spots})
+
+            if password != confirm_password:
+                messages.error(request, '两次输入的密码不一致')
+                return render(request, 'admin/add_user.html', {'scenic_spots': scenic_spots})
+
+            # 检查用户名是否已存在
+            if User.objects.filter(username=username).exists():
+                messages.error(request, '用户名已存在')
+                return render(request, 'admin/add_user.html', {'scenic_spots': scenic_spots})
+
+            # 检查邮箱是否已存在
+            if User.objects.filter(email=email).exists():
+                messages.error(request, '邮箱已被注册')
+                return render(request, 'admin/add_user.html', {'scenic_spots': scenic_spots})
+            
+            print(f"最终角色值: {role}")
+            
+            # 计算下一个连续的用户ID
+            # 先获取所有已存在的用户ID
+            existing_ids = User.objects.values_list('id', flat=True).order_by('id')
+            # 如果没有现有用户，直接使用ID=1
+            if not existing_ids:
+                next_id = 1
+            else:
+                # 查找最小的空缺ID
+                next_id = 1
+                for id in existing_ids:
+                    if id == next_id:
+                        next_id += 1
+                    else:
+                        break
+            
+            # 创建新用户，使用create_user方法会自动加密密码，并指定连续的ID
             user = User.objects.create_user(
+                id=next_id,
                 username=username,
                 email=email,
                 password=password
             )
-
+            
+            print(f"用户创建成功: {user.username}")
+            
             # 设置用户角色
             user.role = int(role)
-
-            # 保存用户信息到数据库
+            
+            # 如果是景点管理员，关联景点
+            if int(role) == 1 and scenic_spot_id:
+                # 获取关联的景点
+                try:
+                    scenic_spot = ScenicSpot.objects.get(id=scenic_spot_id)
+                    user.managed_scenic_spots.add(scenic_spot)
+                    print(f"关联景点成功: {scenic_spot.name}")
+                except ScenicSpot.DoesNotExist:
+                    print(f"景点不存在: {scenic_spot_id}")
+            
             user.save()
+            print(f"用户角色设置成功: {user.role}")
+            
+            print(f"用户角色设置成功: {user.role}")
 
             # 显示成功消息
             messages.success(request, '用户添加成功')
+            print("准备重定向到用户列表页面")
 
             # 重定向到用户列表页面
             return redirect(reverse('ticket:admin_user_list'))
         except Exception as e:
             # 显示错误消息
             messages.error(request, f'添加用户失败: {str(e)}')
-            return render(request, 'admin/add_user.html')
-
-    # GET请求，渲染新增用户表单
-    return render(request, 'admin/add_user.html')
+            return render(request, 'admin/add_user.html', {'scenic_spots': scenic_spots})
+    
+    # GET请求时，渲染表单页面
+    return render(request, 'admin/add_user.html', {'scenic_spots': scenic_spots})
 
 
 # 删除用户视图
@@ -529,6 +585,36 @@ def admin_delete_user(request, user_id):
 
     # 无论成功还是失败，都重定向到用户列表页面
     return redirect(reverse('ticket:admin_user_list'))
+
+
+# 批量删除用户视图
+@admin_required
+def admin_batch_delete_users(request):
+    if request.method == 'POST':
+        # 获取选中的用户ID列表
+        user_ids = request.POST.getlist('user_ids')
+        role_filter = request.POST.get('role_filter', '')
+        
+        if user_ids:
+            try:
+                # 删除选中的用户
+                deleted_count, _ = User.objects.filter(id__in=user_ids).delete()
+                # 显示成功消息
+                messages.success(request, f'成功删除 {deleted_count} 个用户')
+            except Exception as e:
+                # 删除失败
+                messages.error(request, f'批量删除用户失败: {str(e)}')
+        else:
+            # 没有选中用户
+            messages.warning(request, '请至少选择一个用户进行删除')
+    
+    # 构建重定向URL，保持筛选条件
+    redirect_url = reverse('ticket:admin_user_list')
+    if role_filter:
+        redirect_url += f'?role={role_filter}'
+    
+    # 重定向到用户列表页面
+    return redirect(redirect_url)
 
 
 # 编辑用户视图
@@ -651,6 +737,66 @@ def admin_scenic_list(request):
     }
 
     return render(request, 'admin/scenic_list.html', context)
+
+
+# 删除景点视图
+@admin_required
+def admin_delete_scenic(request, spot_id):
+    if request.method == 'POST':
+        try:
+            # 根据spot_id从数据库获取景点
+            scenic_spot = ScenicSpot.objects.get(id=spot_id)
+            
+            # 删除景点
+            scenic_spot.delete()
+            
+            # 显示成功消息
+            messages.success(request, '景点删除成功')
+        except ScenicSpot.DoesNotExist:
+            # 景点不存在
+            messages.error(request, '景点不存在或已被删除')
+        except Exception as e:
+            # 删除失败
+            messages.error(request, f'删除景点失败: {str(e)}')
+    
+    # 获取搜索关键词，保持搜索状态
+    search_keyword = request.POST.get('search', '')
+    redirect_url = reverse('ticket:admin_scenic_list')
+    if search_keyword:
+        redirect_url += f'?search={search_keyword}'
+    
+    # 重定向到景点列表页面
+    return redirect(redirect_url)
+
+
+# 批量删除景点视图
+@admin_required
+def admin_batch_delete_scenic(request):
+    if request.method == 'POST':
+        # 获取选中的景点ID列表
+        scenic_ids = request.POST.getlist('scenic_ids')
+        search_keyword = request.POST.get('search', '')
+        
+        if scenic_ids:
+            try:
+                # 删除选中的景点
+                deleted_count, _ = ScenicSpot.objects.filter(id__in=scenic_ids).delete()
+                # 显示成功消息
+                messages.success(request, f'成功删除 {deleted_count} 个景点')
+            except Exception as e:
+                # 删除失败
+                messages.error(request, f'批量删除景点失败: {str(e)}')
+        else:
+            # 没有选中景点
+            messages.warning(request, '请至少选择一个景点进行删除')
+    
+    # 构建重定向URL，保持搜索条件
+    redirect_url = reverse('ticket:admin_scenic_list')
+    if search_keyword:
+        redirect_url += f'?search={search_keyword}'
+    
+    # 重定向到景点列表页面
+    return redirect(redirect_url)
 
 
 # 新增景点视图
@@ -840,6 +986,44 @@ def admin_order_list(request):
     return render(request, 'admin/order_list.html', context)
 
 
+# 删除订单视图
+@admin_required
+def admin_delete_order(request, order_id):
+    if request.method == 'POST':
+        try:
+            # 根据order_id从数据库获取订单
+            order = Order.objects.get(id=order_id)
+            
+            # 删除订单
+            order.delete()
+            
+            # 显示成功消息
+            messages.success(request, '订单删除成功')
+        except Order.DoesNotExist:
+            # 订单不存在
+            messages.error(request, '订单不存在或已被删除')
+        except Exception as e:
+            # 删除失败
+            messages.error(request, f'删除订单失败: {str(e)}')
+    
+    # 获取筛选条件，保持筛选状态
+    status_filter = request.POST.get('status_filter', '')
+    search_keyword = request.POST.get('search', '')
+    
+    # 构建重定向URL
+    redirect_url = reverse('ticket:admin_order_list')
+    query_params = []
+    if status_filter:
+        query_params.append(f'status={status_filter}')
+    if search_keyword:
+        query_params.append(f'search={search_keyword}')
+    if query_params:
+        redirect_url += f'?{"&".join(query_params)}'
+    
+    # 重定向到订单列表页面
+    return redirect(redirect_url)
+
+
 # 留言管理视图
 @admin_required
 def admin_comment_list(request):
@@ -880,6 +1064,46 @@ def admin_comment_list(request):
     }
 
     return render(request, 'admin/comment_list.html', context)
+
+
+# 管理员回复留言视图
+@admin_required
+def admin_reply_comment(request, comment_id):
+    if request.method == 'POST':
+        try:
+            # 获取要回复的留言
+            comment = ScenicSpotComment.objects.get(id=comment_id)
+            # 获取回复内容
+            reply_content = request.POST.get('reply_content')
+            if reply_content and reply_content.strip():
+                # 更新留言的回复信息
+                comment.reply = reply_content.strip()
+                comment.is_replied = True
+                # reply_time字段会在save()时自动更新，不需要手动设置
+                comment.save()
+                # 显示成功消息
+                messages.success(request, '回复成功！')
+        except ScenicSpotComment.DoesNotExist:
+            messages.error(request, '留言不存在或已被删除')
+    # 重定向回留言管理页面
+    return redirect(reverse('ticket:admin_comment_list'))
+
+
+# 管理员删除留言视图
+@admin_required
+def admin_delete_comment(request, comment_id):
+    if request.method == 'POST':
+        try:
+            # 获取要删除的留言
+            comment = ScenicSpotComment.objects.get(id=comment_id)
+            # 删除留言
+            comment.delete()
+            # 显示成功消息
+            messages.success(request, '留言删除成功！')
+        except ScenicSpotComment.DoesNotExist:
+            messages.error(request, '留言不存在或已被删除')
+    # 重定向回留言管理页面
+    return redirect(reverse('ticket:admin_comment_list'))
 
 
 # 公告管理视图
@@ -948,6 +1172,78 @@ def admin_add_announcement(request):
     return render(request, 'admin/add_announcement.html')
 
 
+# 编辑公告视图
+@admin_required
+def admin_edit_announcement(request, announcement_id):
+    try:
+        # 获取要编辑的公告
+        announcement = News.objects.get(id=announcement_id, is_announcement=True)
+    except News.DoesNotExist:
+        messages.error(request, '公告不存在或已被删除')
+        return redirect(reverse('ticket:admin_announcement_list'))
+    
+    if request.method == 'POST':
+        # 从POST请求中获取表单数据
+        title = request.POST.get('title')
+        content = request.POST.get('content')
+        image = request.FILES.get('image')
+
+        # 表单验证
+        if not title or not content:
+            messages.error(request, '标题和内容不能为空')
+            return render(request, 'admin/edit_announcement.html', {'announcement': announcement})
+
+        try:
+            # 更新公告信息
+            announcement.title = title
+            announcement.content = content
+            if image:
+                announcement.image = image
+            announcement.save()
+
+            # 显示成功消息
+            messages.success(request, '公告更新成功')
+            # 重定向到公告列表页面
+            return redirect(reverse('ticket:admin_announcement_list'))
+        except Exception as e:
+            # 显示错误消息
+            messages.error(request, f'更新公告失败: {str(e)}')
+            return render(request, 'admin/edit_announcement.html', {'announcement': announcement})
+    
+    # GET请求，渲染编辑公告表单
+    return render(request, 'admin/edit_announcement.html', {'announcement': announcement})
+
+
+# 删除公告视图
+@admin_required
+def admin_delete_announcement(request, announcement_id):
+    if request.method == 'POST':
+        try:
+            # 根据announcement_id从数据库获取公告
+            announcement = News.objects.get(id=announcement_id, is_announcement=True)
+            
+            # 删除公告
+            announcement.delete()
+            
+            # 显示成功消息
+            messages.success(request, '公告删除成功')
+        except News.DoesNotExist:
+            # 公告不存在
+            messages.error(request, '公告不存在或已被删除')
+        except Exception as e:
+            # 删除失败
+            messages.error(request, f'删除公告失败: {str(e)}')
+    
+    # 获取搜索关键词，保持搜索状态
+    search_keyword = request.POST.get('search', '')
+    redirect_url = reverse('ticket:admin_announcement_list')
+    if search_keyword:
+        redirect_url += f'?search={search_keyword}'
+    
+    # 重定向到公告列表页面
+    return redirect(redirect_url)
+
+
 # 资讯管理视图
 @admin_required
 def admin_news_list(request):
@@ -1012,6 +1308,150 @@ def admin_add_news(request):
 
     # GET请求，渲染新增资讯表单
     return render(request, 'admin/add_news.html')
+
+
+# 编辑资讯视图
+@admin_required
+def admin_edit_news(request, news_id):
+    try:
+        # 获取要编辑的资讯
+        news = News.objects.get(id=news_id, is_announcement=False)
+    except News.DoesNotExist:
+        messages.error(request, '资讯不存在或已被删除')
+        return redirect(reverse('ticket:admin_news_list'))
+    
+    if request.method == 'POST':
+        # 从POST请求中获取表单数据
+        title = request.POST.get('title')
+        content = request.POST.get('content')
+        image = request.FILES.get('image')
+
+        # 表单验证
+        if not title or not content:
+            messages.error(request, '标题和内容不能为空')
+            return render(request, 'admin/edit_news.html', {'news': news})
+
+        try:
+            # 更新资讯信息
+            news.title = title
+            news.content = content
+            if image:
+                news.image = image
+            news.save()
+
+            # 显示成功消息
+            messages.success(request, '资讯更新成功')
+            # 重定向到资讯列表页面
+            return redirect(reverse('ticket:admin_news_list'))
+        except Exception as e:
+            # 显示错误消息
+            messages.error(request, f'更新资讯失败: {str(e)}')
+            return render(request, 'admin/edit_news.html', {'news': news})
+    
+    # GET请求，渲染编辑资讯表单
+    return render(request, 'admin/edit_news.html', {'news': news})
+
+
+# 删除资讯视图
+@admin_required
+def admin_delete_news(request, news_id):
+    if request.method == 'POST':
+        try:
+            # 根据news_id从数据库获取资讯
+            news = News.objects.get(id=news_id, is_announcement=False)
+            
+            # 删除资讯
+            news.delete()
+            
+            # 显示成功消息
+            messages.success(request, '资讯删除成功')
+        except News.DoesNotExist:
+            # 资讯不存在
+            messages.error(request, '资讯不存在或已被删除')
+        except Exception as e:
+            # 删除失败
+            messages.error(request, f'删除资讯失败: {str(e)}')
+    
+    # 获取搜索关键词，保持搜索状态
+    search_keyword = request.POST.get('search', '')
+    redirect_url = reverse('ticket:admin_news_list')
+    if search_keyword:
+        redirect_url += f'?search={search_keyword}'
+    
+    # 重定向到资讯列表页面
+    return redirect(redirect_url)
+
+
+# 编辑资讯视图
+@admin_required
+def admin_edit_news(request, news_id):
+    try:
+        # 获取要编辑的资讯
+        news = News.objects.get(id=news_id, is_announcement=False)
+    except News.DoesNotExist:
+        messages.error(request, '资讯不存在或已被删除')
+        return redirect(reverse('ticket:admin_news_list'))
+    
+    if request.method == 'POST':
+        # 从POST请求中获取表单数据
+        title = request.POST.get('title')
+        content = request.POST.get('content')
+        image = request.FILES.get('image')
+
+        # 表单验证
+        if not title or not content:
+            messages.error(request, '标题和内容不能为空')
+            return render(request, 'admin/edit_news.html', {'news': news})
+
+        try:
+            # 更新资讯信息
+            news.title = title
+            news.content = content
+            if image:
+                news.image = image
+            news.save()
+
+            # 显示成功消息
+            messages.success(request, '资讯更新成功')
+            # 重定向到资讯列表页面
+            return redirect(reverse('ticket:admin_news_list'))
+        except Exception as e:
+            # 显示错误消息
+            messages.error(request, f'更新资讯失败: {str(e)}')
+            return render(request, 'admin/edit_news.html', {'news': news})
+    
+    # GET请求，渲染编辑资讯表单
+    return render(request, 'admin/edit_news.html', {'news': news})
+
+
+# 删除资讯视图
+@admin_required
+def admin_delete_news(request, news_id):
+    if request.method == 'POST':
+        try:
+            # 根据news_id从数据库获取资讯
+            news = News.objects.get(id=news_id, is_announcement=False)
+            
+            # 删除资讯
+            news.delete()
+            
+            # 显示成功消息
+            messages.success(request, '资讯删除成功')
+        except News.DoesNotExist:
+            # 资讯不存在
+            messages.error(request, '资讯不存在或已被删除')
+        except Exception as e:
+            # 删除失败
+            messages.error(request, f'删除资讯失败: {str(e)}')
+    
+    # 获取搜索关键词，保持搜索状态
+    search_keyword = request.POST.get('search', '')
+    redirect_url = reverse('ticket:admin_news_list')
+    if search_keyword:
+        redirect_url += f'?search={search_keyword}'
+    
+    # 重定向到资讯列表页面
+    return redirect(redirect_url)
 
 
 # 系统设置视图
@@ -1232,6 +1672,20 @@ def scenic_spot_detail(request, spot_id):
     tags_list = [tag.strip() for tag in spot.tags.split(',')]
     # 获取该景点的所有留言，按创建时间倒序排列
     comments = ScenicSpotComment.objects.filter(scenic_spot=spot).order_by('-created_at')
+    
+    # 处理留言提交
+    if request.method == 'POST' and request.user.is_authenticated:
+        comment_content = request.POST.get('comment_content')
+        if comment_content and comment_content.strip():
+            # 创建新的留言
+            ScenicSpotComment.objects.create(
+                scenic_spot=spot,
+                user=request.user,
+                content=comment_content.strip()
+            )
+            # 重定向到当前页面，刷新留言列表
+            return redirect(reverse('ticket:scenic_spot_detail', kwargs={'spot_id': spot_id}))
+    
     # 构建上下文
     context = {
         'spot': spot,
@@ -1267,6 +1721,138 @@ def news_detail(request, news_id):
     # 渲染news_detail.html模板，将资讯详情数据传递给模板
     return render(request, 'news_detail.html', {'news': news_item})
 
+# 购票页面视图函数，处理景点购票请求
+# spot_id: 景点ID，从URL中获取
+def buy_ticket(request, spot_id):
+    # 根据景点ID从数据库中获取景点信息
+    spot = ScenicSpot.objects.get(id=spot_id)
+    # 获取该景点的所有激活状态的门票类型
+    ticket_types = TicketType.objects.filter(scenic_spot=spot, is_active=True)
+    # 分类门票类型：单票和套票
+    single_tickets = ticket_types.filter(type='single')
+    package_tickets = ticket_types.filter(type='package')
+    
+    # 处理表单提交
+    if request.method == 'POST':
+        # 获取表单数据
+        use_date = request.POST.get('use_date')
+        ticket_type_id = request.POST.get('ticket_type')
+        quantity = int(request.POST.get('quantity', 1))
+        action = request.POST.get('action')
+        
+        # 验证是否选择了门票类型
+        if not ticket_type_id:
+            # 如果没有选择门票类型，显示错误信息
+            messages.error(request, '请选择门票类型')
+            # 返回购票页面时保留用户之前的选择
+            return render(request, 'buy_ticket.html', {
+                'spot': spot,
+                'ticket_types': ticket_types,
+                'single_tickets': single_tickets,
+                'package_tickets': package_tickets,
+                'selected_use_date': use_date,
+                'selected_quantity': quantity
+            })
+        
+        # 获取门票类型
+        ticket_type = TicketType.objects.get(id=ticket_type_id)
+        
+        # 检查库存
+        if ticket_type.stock < quantity:
+            # 库存不足，显示错误信息
+            messages.error(request, f'门票库存不足，当前库存仅剩 {ticket_type.stock} 张')
+            # 返回购票页面时保留用户之前的选择
+            return render(request, 'buy_ticket.html', {
+                'spot': spot,
+                'ticket_types': ticket_types,
+                'single_tickets': single_tickets,
+                'package_tickets': package_tickets,
+                'selected_use_date': use_date,
+                'selected_quantity': quantity
+            })
+        
+        # 计算总价
+        total_price = ticket_type.price * quantity
+        
+        # 处理不同的操作
+        if action == 'buy_now':
+            # 直接购买：创建订单并跳转到支付页面
+            if request.user.is_authenticated:
+                # 生成订单号
+                import datetime
+                import uuid
+                order_number = f"ORD{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}{uuid.uuid4().hex[:6].upper()}"
+                
+                # 创建订单
+                order = Order.objects.create(
+                    user=request.user,
+                    scenic_spot=spot,
+                    ticket_type=ticket_type,
+                    use_date=use_date,
+                    quantity=quantity,
+                    total_price=total_price,
+                    order_number=order_number
+                )
+                
+                # 减少库存
+                ticket_type.stock -= quantity
+                ticket_type.save()
+                
+                # 跳转到支付页面
+                return redirect(reverse('ticket:payment', kwargs={'order_id': order.id}))
+            else:
+                # 用户未登录，跳转到登录页面
+                messages.error(request, '请先登录')
+                return redirect(reverse('ticket:login'))
+        elif action == 'add_to_cart':
+            # 加入购物车：添加到用户购物车
+            if request.user.is_authenticated:
+                # 创建购物车记录
+                Cart.objects.create(
+                    user=request.user,
+                    scenic_spot=spot,
+                    ticket_type=ticket_type,
+                    use_date=use_date,
+                    quantity=quantity
+                )
+                messages.success(request, '已成功加入购物车')
+                return redirect(reverse('ticket:cart'))
+            else:
+                # 用户未登录，跳转到登录页面
+                messages.error(request, '请先登录')
+                return redirect(reverse('ticket:login'))
+    
+    # 渲染buy_ticket.html模板，将景点和门票类型数据传递给模板
+    return render(request, 'buy_ticket.html', {
+        'spot': spot,
+        'ticket_types': ticket_types,
+        'single_tickets': single_tickets,
+        'package_tickets': package_tickets
+    })
+
+# 支付页面视图函数，处理订单支付请求
+# order_id: 订单ID，从URL中获取
+def payment(request, order_id):
+    # 根据订单ID从数据库中获取订单信息
+    order = Order.objects.get(id=order_id)
+    
+    # 处理支付提交
+    if request.method == 'POST':
+        # 模拟支付成功
+        order.status = 1  # 设置订单状态为已支付
+        order.save()
+        
+        # 显示支付成功消息
+        messages.success(request, '支付成功！')
+        
+        # 跳转到订单中心
+        return redirect(reverse('ticket:order_center'))
+    
+    # 渲染payment.html模板，将订单数据传递给模板
+    return render(request, 'payment.html', {
+        'order': order
+    })
+
 
 # 购物车视图函数，处理用户购物车请求
 # @login_required装饰器：要求用户必须登录才能访问该视图
@@ -1274,6 +1860,67 @@ def news_detail(request, news_id):
 def cart(request):
     # 获取当前登录用户的购物车记录
     cart_items = Cart.objects.filter(user=request.user)
+    
+    # 为每个购物车项添加总价属性
+    for item in cart_items:
+        # 计算每个购物车项的总价（单价×数量）
+        item.total_price = item.ticket_type.price * item.quantity
+    
+    # 处理表单提交（购买功能）
+    if request.method == 'POST':
+        # 获取用户选择的购物车项目ID
+        selected_item_ids = request.POST.getlist('selected_items')
+        
+        # 检查是否选择了商品
+        if not selected_item_ids:
+            messages.error(request, '请选择要购买的商品')
+            return redirect(reverse('ticket:cart'))
+        
+        # 遍历选中的购物车项目，创建订单
+        orders = []
+        for item_id in selected_item_ids:
+            try:
+                # 获取购物车项目
+                cart_item = Cart.objects.get(id=item_id, user=request.user)
+                
+                # 生成订单号
+                import datetime
+                import uuid
+                order_number = f"ORD{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}{uuid.uuid4().hex[:6].upper()}"
+                
+                # 计算订单总价
+                total_price = cart_item.ticket_type.price * cart_item.quantity
+                
+                # 创建订单
+                order = Order.objects.create(
+                    user=request.user,
+                    scenic_spot=cart_item.scenic_spot,
+                    ticket_type=cart_item.ticket_type,
+                    use_date=cart_item.use_date,
+                    quantity=cart_item.quantity,
+                    total_price=total_price,
+                    order_number=order_number
+                )
+                
+                orders.append(order)
+                
+                # 从购物车中删除已购买的项目
+                cart_item.delete()
+            except Cart.DoesNotExist:
+                messages.error(request, '购物车项目不存在或已被删除')
+                continue
+        
+        if orders:
+            # 如果只有一个订单，直接跳转到支付页面
+            if len(orders) == 1:
+                return redirect(reverse('ticket:payment', kwargs={'order_id': orders[0].id}))
+            else:
+                # 多个订单，跳转到订单中心
+                messages.success(request, f'已成功创建 {len(orders)} 个订单')
+                return redirect(reverse('ticket:order_center'))
+        else:
+            messages.error(request, '没有成功创建订单，请重新尝试')
+            return redirect(reverse('ticket:cart'))
 
     # 渲染cart.html模板，将购物车数据传递给模板
     return render(request, 'cart.html', {'cart_items': cart_items})
@@ -1288,3 +1935,48 @@ def order_center(request):
 
     # 渲染order_center.html模板，将订单数据传递给模板
     return render(request, 'order_center.html', {'orders': orders})
+
+
+# 取消订单视图函数，处理用户取消订单请求
+# @login_required装饰器：要求用户必须登录才能访问该视图
+@login_required
+def cancel_order(request, order_id):
+    # 判断请求方法是否为POST（表单提交）
+    if request.method == 'POST':
+        try:
+            # 获取订单信息，确保订单属于当前用户
+            order = Order.objects.get(id=order_id, user=request.user)
+            
+            # 只有待支付订单才能取消
+            if order.status == 0:
+                # 恢复门票库存
+                if order.ticket_type:
+                    order.ticket_type.stock += order.quantity
+                    order.ticket_type.save()
+                
+                # 更新订单状态为已取消
+                order.status = 2
+                order.save()
+                
+                # 显示成功消息
+                messages.success(request, '订单已成功取消')
+            else:
+                # 非待支付订单不能取消
+                messages.error(request, '只有待支付订单才能取消')
+        except Order.DoesNotExist:
+            # 订单不存在或不属于当前用户
+            messages.error(request, '订单不存在或您没有权限操作')
+        except Exception as e:
+            # 其他错误
+            messages.error(request, f'取消订单失败: {str(e)}')
+    
+    # 重定向回订单中心页面
+    return redirect(reverse('ticket:order_center'))
+
+
+# 联系客服视图函数，处理用户联系客服请求
+# @login_required装饰器：要求用户必须登录才能访问该视图
+@login_required
+def contact_service(request):
+    # 渲染contact_service.html模板，显示联系客服页面
+    return render(request, 'contact_service.html')

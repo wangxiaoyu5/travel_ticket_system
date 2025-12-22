@@ -82,13 +82,35 @@
         <!-- 留言区 -->
         <div class="mb-5">
             <h3>用户留言</h3>
+            
+            <!-- 发表留言表单 -->
+            {% if user.is_authenticated %}
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">发表留言</h5>
+                        <form method="post" action="#">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <textarea class="form-control" rows="3" name="comment_content" placeholder="请输入您的留言内容..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">提交留言</button>
+                        </form>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-info mt-3" role="alert">
+                    <i class="bi bi-info-circle"></i> 请先 <a href="{% url 'ticket:login' %}" class="alert-link">登录</a> 后再发表留言
+                </div>
+            {% endif %}
+            
+            <!-- 留言列表 -->
             <div class="card mt-3">
                 <div class="card-body">
                     {% if comments.exists %}
                         {% for comment in comments %}
                             <div class="media mb-4">
                                 <!-- 用户头像 -->
-                                <img src="{% if comment.user.avatar %}{{ comment.user.avatar.url }}{% else %}{% static 'default_avatar.jpg' %}{% endif %}" 
+                                <img src="{% if comment.user.avatar %}{{ comment.user.avatar.url }}{% else %}/static/default_avatar.jpg{% endif %}" 
                                      class="mr-3 rounded-circle" 
                                      alt="{{ comment.user.username }}" 
                                      style="width: 50px; height: 50px; object-fit: cover;">
@@ -96,10 +118,28 @@
                                     <!-- 用户名和时间 -->
                                     <div class="d-flex justify-content-between align-items-center">
                                         <h5 class="mt-0">{{ comment.user.username }}</h5>
-                                        <small class="text-muted">{{ comment.created_at|date:'Y-m-d H:i' }}</small>
+                                        <div class="d-flex align-items-center">
+                                            {% if comment.is_replied %}
+                                                <span class="badge bg-success me-2">已回复</span>
+                                            {% else %}
+                                                <span class="badge bg-warning text-dark me-2">未回复</span>
+                                            {% endif %}
+                                            <small class="text-muted">{{ comment.created_at|date:'Y-m-d H:i' }}</small>
+                                        </div>
                                     </div>
                                     <!-- 留言内容 -->
-                                    <p>{{ comment.content }}</p>
+                                    <p class="mb-2">{{ comment.content }}</p>
+                                    
+                                    <!-- 回复内容 -->
+                                    {% if comment.reply %}
+                                        <div class="bg-light p-3 rounded mt-2 border-left border-primary">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <small class="font-weight-bold text-primary">管理员回复</small>
+                                                <small class="text-muted">{{ comment.reply_time|date:'Y-m-d H:i' }}</small>
+                                            </div>
+                                            <p class="mb-0">{{ comment.reply }}</p>
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                             {% if not forloop.last %}
@@ -122,7 +162,7 @@
                 <p class="text-danger fs-2 mb-0">¥{{ spot.price }}</p>
             </div>
             <div>
-                <a href="#" class="btn btn-primary btn-lg">立即购票</a>
+                <a href="{% url 'ticket:buy_ticket' spot_id=spot.id %}" class="btn btn-primary btn-lg">立即购票</a>
             </div>
         </div>
     </div>

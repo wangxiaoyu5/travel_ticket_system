@@ -13,9 +13,13 @@
                         <a href="{% url 'ticket:admin_add_scenic' %}" class="btn btn-success">
                             <i class="bi bi-plus-circle me-1"></i> 新增景点
                         </a>
-                        <button type="button" class="btn btn-danger">
-                            <i class="bi bi-trash me-1"></i> 批量删除
-                        </button>
+                        <form method="post" action="{% url 'ticket:admin_batch_delete_scenic' %}" id="batchDeleteForm">
+                            {% csrf_token %}
+                            <input type="hidden" name="search" value="{{ search_keyword }}">
+                            <button type="button" class="btn btn-danger" onclick="batchDeleteScenic()">
+                                <i class="bi bi-trash me-1"></i> 批量删除
+                            </button>
+                        </form>
                     </div>
                 </div>
                 <div class="col-md-6">
@@ -48,7 +52,7 @@
                     <tr>
                         <td>
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="{{ scenic.id }}">
+                                <input class="form-check-input scenic-checkbox" type="checkbox" name="scenic_ids" value="{{ scenic.id }}">
                             </div>
                         </td>
                         <td>{{ scenic.id }}</td>
@@ -65,7 +69,30 @@
                         <td>
                             <div class="btn-group">
                                 <a href="{% url 'ticket:admin_edit_scenic' spot_id=scenic.id %}" class="btn btn-primary btn-sm">编辑</a>
-                                <button type="button" class="btn btn-danger btn-sm">删除</button>
+                                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal_{{ scenic.id }}">删除</button>
+                            </div>
+                            
+                            <!-- 删除确认模态框 -->
+                            <div class="modal fade" id="deleteModal_{{ scenic.id }}" tabindex="-1" aria-labelledby="deleteModalLabel_{{ scenic.id }}" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="deleteModalLabel_{{ scenic.id }}">确认删除</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>确定要删除景点 <strong>{{ scenic.name }}</strong> 吗？此操作不可恢复。</p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                            <form method="post" action="{% url 'ticket:admin_delete_scenic' spot_id=scenic.id %}">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="search" value="{{ search_keyword }}">
+                                                <button type="submit" class="btn btn-danger">删除</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </td>
                     </tr>
@@ -82,10 +109,44 @@
     <script>
         // 全选/取消全选功能
         document.getElementById('selectAll').addEventListener('change', function() {
-            const checkboxes = document.querySelectorAll('.form-check-input:not(#selectAll)');
+            const checkboxes = document.querySelectorAll('.scenic-checkbox');
             checkboxes.forEach(checkbox => {
                 checkbox.checked = this.checked;
             });
         });
+        
+        // 批量删除功能
+        function batchDeleteScenic() {
+            // 获取所有选中的景点复选框
+            const checkedCheckboxes = document.querySelectorAll('.scenic-checkbox:checked');
+            
+            // 检查是否有选中的景点
+            if (checkedCheckboxes.length === 0) {
+                alert('请至少选择一个景点进行删除');
+                return;
+            }
+            
+            // 确认删除操作
+            if (confirm('确定要删除选中的 ' + checkedCheckboxes.length + ' 个景点吗？此操作不可恢复。')) {
+                // 创建一个隐藏的input元素来存储选中的景点ID
+                const form = document.getElementById('batchDeleteForm');
+                
+                // 移除之前可能存在的scenic_ids_hidden字段
+                const existingHiddenInputs = form.querySelectorAll('input[name="scenic_ids"]');
+                existingHiddenInputs.forEach(input => input.remove());
+                
+                // 创建隐藏字段来存储选中的景点ID
+                checkedCheckboxes.forEach(checkbox => {
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'scenic_ids';
+                    hiddenInput.value = checkbox.value;
+                    form.appendChild(hiddenInput);
+                });
+                
+                // 提交表单
+                form.submit();
+            }
+        }
     </script>
 {% endblock content %}

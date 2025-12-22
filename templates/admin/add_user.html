@@ -56,11 +56,10 @@
                     <label for="scenic_spot" class="form-label">景点</label>
                     <select class="form-select" id="scenic_spot" name="scenic_spot">
                         <option value="">请选择景点</option>
-                        <!-- 示例数据 -->
-                        <option value="1">故宫博物院</option>
-                        <option value="2">颐和园</option>
-                        <option value="3">长城</option>
-                        <option value="4">天坛</option>
+                        <!-- 动态从数据库获取景点 -->
+                        {% for scenic_spot in scenic_spots %}
+                            <option value="{{ scenic_spot.id }}">{{ scenic_spot.name }}</option>
+                        {% endfor %}
                     </select>
                 </div>
                 

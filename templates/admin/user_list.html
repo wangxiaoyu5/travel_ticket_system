@@ -21,9 +21,13 @@
                         <a href="{% url 'ticket:admin_add_user' %}" class="btn btn-success">
                             <i class="bi bi-plus-circle me-1"></i> 新增用户
                         </a>
-                        <button type="button" class="btn btn-danger">
-                            <i class="bi bi-trash me-1"></i> 批量删除
-                        </button>
+                        <form method="post" action="{% url 'ticket:admin_batch_delete_users' %}" id="batchDeleteForm">
+                            {% csrf_token %}
+                            <input type="hidden" name="role_filter" value="{{ role_filter }}">
+                            <button type="button" class="btn btn-danger" onclick="batchDeleteUsers()">
+                                <i class="bi bi-trash me-1"></i> 批量删除
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -49,7 +53,7 @@
                     <tr>
                         <td>
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="{{ user.id }}">
+                                <input class="form-check-input user-checkbox" type="checkbox" name="user_ids" value="{{ user.id }}">
                             </div>
                         </td>
                         <td>{{ user.id }}</td>
@@ -98,10 +102,44 @@
     <script>
         // 全选/取消全选功能
         document.getElementById('selectAll').addEventListener('change', function() {
-            const checkboxes = document.querySelectorAll('.form-check-input:not(#selectAll)');
+            const checkboxes = document.querySelectorAll('.user-checkbox');
             checkboxes.forEach(checkbox => {
                 checkbox.checked = this.checked;
             });
         });
+        
+        // 批量删除功能
+        function batchDeleteUsers() {
+            // 获取所有选中的用户复选框
+            const checkedCheckboxes = document.querySelectorAll('.user-checkbox:checked');
+            
+            // 检查是否有选中的用户
+            if (checkedCheckboxes.length === 0) {
+                alert('请至少选择一个用户进行删除');
+                return;
+            }
+            
+            // 确认删除操作
+            if (confirm('确定要删除选中的 ' + checkedCheckboxes.length + ' 个用户吗？此操作不可恢复。')) {
+                // 创建一个隐藏的input元素来存储选中的用户ID
+                const form = document.getElementById('batchDeleteForm');
+                
+                // 移除之前可能存在的user_ids_hidden字段
+                const existingHiddenInputs = form.querySelectorAll('input[name="user_ids_hidden"]');
+                existingHiddenInputs.forEach(input => input.remove());
+                
+                // 创建隐藏字段来存储选中的用户ID
+                checkedCheckboxes.forEach(checkbox => {
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = 'user_ids';
+                    hiddenInput.value = checkbox.value;
+                    form.appendChild(hiddenInput);
+                });
+                
+                // 提交表单
+                form.submit();
+            }
+        }
     </script>
 {% endblock %}

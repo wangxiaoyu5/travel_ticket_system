@@ -2,7 +2,7 @@
 {% load static %}
 {% block content %}
     <!-- 轮播图区域：使用Bootstrap 5的轮播组件 -->
-    <div id="carouselExampleIndicators" class="carousel slide" data-bs-ride="carousel">
+    <div id="carouselExampleIndicators" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3000">
         <!-- 轮播指示器：显示轮播图数量和当前位置 -->
         <div class="carousel-indicators">
             {% for carousel in carousels %}
@@ -19,9 +19,13 @@
         <div class="carousel-inner">
             {% for carousel in carousels %}
             <div class="carousel-item {% if forloop.first %}active{% endif %}">
-                <img src="{{ carousel.image.url }}" class="d-block w-100" alt="{{ carousel.scenic_spot.name }}">
+                <a href="{% url 'ticket:scenic_spot_detail' spot_id=carousel.scenic_spot.id %}">
+                    <img src="{{ carousel.image.url }}" class="d-block w-100" alt="{{ carousel.scenic_spot.name }}">
+                </a>
                 <div class="carousel-caption d-none d-md-block">
-                    <h5>{{ carousel.scenic_spot.name }}</h5>
+                    <a href="{% url 'ticket:scenic_spot_detail' spot_id=carousel.scenic_spot.id %}" class="text-white text-decoration-none">
+                        <h5>{{ carousel.scenic_spot.name }}</h5>
+                    </a>
 {#                    <p>{{ carousel.scenic_spot.description|truncatechars:100 }}</p>#}
                 </div>
             </div>
@@ -41,7 +45,10 @@
 
     <!-- 平台重要公告区域 -->
     <div class="container mt-5">
-        <h2 class="mb-4">平台重要公告</h2>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>平台重要公告</h2>
+            <a href="{% url 'ticket:news_list' %}?type=announcement" class="btn btn-outline-primary">更多 >></a>
+        </div>
         <div class="row">
             {% for announcement in announcements %}
             <div class="col-md-4 mb-3">
@@ -65,7 +72,10 @@
 
     <!-- 最新旅游资讯区域 -->
     <div class="container mt-5">
-        <h2 class="mb-4">最新旅游资讯</h2>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>最新旅游资讯</h2>
+            <a href="{% url 'ticket:news_list' %}?type=news" class="btn btn-outline-primary">更多 >></a>
+        </div>
         <div class="row">
             {% for news in latest_news %}
             <div class="col-md-3 mb-3">
@@ -92,18 +102,23 @@
 
     <!-- 热门景点区域 -->
     <div class="container mt-5 mb-5">
-        <h2 class="mb-4">热门景点</h2>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>热门景点</h2>
+            <a href="{% url 'ticket:scenic_spots' %}" class="btn btn-outline-primary">更多 >></a>
+        </div>
         <div class="row">
             {% for spot in hot_spots %}
             <div class="col-md-4 mb-4">
-                <div class="card h-100">
+                <div class="card h-100 d-flex flex-column">
                     <img src="{{ spot.image.url }}" 
                          class="card-img-top" 
                          alt="{{ spot.name }}" 
                          style="height: 250px; object-fit: cover;">
-                    <div class="card-body">
+                    <div class="card-body flex-grow-1">
                         <h5 class="card-title">{{ spot.name }}</h5>
                         <p class="card-text">{{ spot.description|truncatechars:120 }}</p>
+                    </div>
+                    <div class="card-footer bg-white border-top-0 pb-4 px-4">
                         <div class="d-flex justify-content-between align-items-center">
                             <span class="text-danger fs-5">¥{{ spot.price }}</span>
                             <a href="{% url 'ticket:scenic_spot_detail' spot_id=spot.id %}" class="btn btn-primary">查看详情</a>

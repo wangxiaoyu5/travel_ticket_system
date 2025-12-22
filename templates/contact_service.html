@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h2>联系客服</h2>
+        <div class="row mt-4">
+            <!-- 左侧联系信息 -->
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">联系方式</h5>
+                        <hr>
+                        <div class="mt-4">
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="bg-primary text-white rounded-circle p-3 me-3">
+                                    <i class="bi bi-telephone fs-3"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">客服电话</h6>
+                                    <p class="text-muted">400-123-4567</p>
+                                    <small class="text-sm text-muted">服务时间：08:00-22:00</small>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="bg-primary text-white rounded-circle p-3 me-3">
+                                    <i class="bi bi-envelope fs-3"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">客服邮箱</h6>
+                                    <p class="text-muted">service@travel-system.com</p>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <div class="bg-primary text-white rounded-circle p-3 me-3">
+                                    <i class="bi bi-clock fs-3"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">服务时间</h6>
+                                    <p class="text-muted">周一至周日 08:00-22:00</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">常见问题</h5>
+                        <hr>
+                        <div class="mt-4">
+                            <div class="accordion" id="faqAccordion">
+                                <div class="accordion-item mb-2">
+                                    <h2 class="accordion-header" id="faq1">
+                                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1" aria-expanded="true" aria-controls="collapse1">
+                                            如何修改订单信息？
+                                        </button>
+                                    </h2>
+                                    <div id="collapse1" class="accordion-collapse collapse show" aria-labelledby="faq1" data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body">
+                                            订单创建后，您可以在订单中心页面找到对应的订单，点击"修改订单"按钮进行修改。注意：已支付订单无法修改，如需修改请联系客服。
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="accordion-item mb-2">
+                                    <h2 class="accordion-header" id="faq2">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2" aria-expanded="false" aria-controls="collapse2">
+                                            如何申请退款？
+                                        </button>
+                                    </h2>
+                                    <div id="collapse2" class="accordion-collapse collapse" aria-labelledby="faq2" data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body">
+                                            您可以在订单中心页面找到对应的订单，点击"申请退款"按钮。退款申请将在1-3个工作日内处理，退款金额将原路返回。
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="accordion-item mb-2">
+                                    <h2 class="accordion-header" id="faq3">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3" aria-expanded="false" aria-controls="collapse3">
+                                            门票可以转让吗？
+                                        </button>
+                                    </h2>
+                                    <div id="collapse3" class="accordion-collapse collapse" aria-labelledby="faq3" data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body">
+                                            目前门票暂不支持转让。如需转让，请联系客服处理。
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧在线客服表单 -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">在线咨询</h5>
+                        <hr>
+                        <form method="post" action="#" class="mt-4">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="name" class="form-label">姓名</label>
+                                <input type="text" class="form-control" id="name" name="name" value="{{ user.username }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">邮箱</label>
+                                <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">电话</label>
+                                <input type="tel" class="form-control" id="phone" name="phone" placeholder="请输入您的联系电话">
+                            </div>
+                            <div class="mb-3">
+                                <label for="subject" class="form-label">咨询主题</label>
+                                <select class="form-select" id="subject" name="subject" required>
+                                    <option value="">请选择咨询主题</option>
+                                    <option value="order">订单问题</option>
+                                    <option value="payment">支付问题</option>
+                                    <option value="refund">退款问题</option>
+                                    <option value="ticket">门票问题</option>
+                                    <option value="others">其他问题</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="message" class="form-label">咨询内容</label>
+                                <textarea class="form-control" id="message" name="message" rows="5" placeholder="请详细描述您的问题" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">提交咨询</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
