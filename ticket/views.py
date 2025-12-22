@@ -360,15 +360,10 @@ def scenic_admin_account(request):
     return render(request, 'scenic_admin/account.html')
 
 
-# 公告管理视图
+# 资讯公告管理视图
 @scenic_admin_required
-def scenic_admin_announcements(request):
-    return render(request, 'scenic_admin/announcements.html')
-
-# 资讯管理视图
-@scenic_admin_required
-def scenic_admin_news(request):
-    return render(request, 'scenic_admin/news.html')
+def scenic_admin_news_announcements(request):
+    return render(request, 'scenic_admin/news_announcements.html')
 
 
 # 平台管理员后台视图函数，需要登录且角色为平台管理员才能访问

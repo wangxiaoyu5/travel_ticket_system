@@ -84,10 +84,8 @@ urlpatterns = [
     path('scenic_admin/statistics/', views.scenic_admin_statistics, name='scenic_admin_statistics'),
     # 账户信息管理
     path('scenic_admin/account/', views.scenic_admin_account, name='scenic_admin_account'),
-    # 公告管理
-    path('scenic_admin/announcements/', views.scenic_admin_announcements, name='scenic_admin_announcements'),
-    # 资讯管理
-    path('scenic_admin/news/', views.scenic_admin_news, name='scenic_admin_news'),
+    # 资讯公告管理
+    path('scenic_admin/news_announcements/', views.scenic_admin_news_announcements, name='scenic_admin_news_announcements'),
     
     # 平台管理员URL
     # 控制台
