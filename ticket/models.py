@@ -60,6 +60,25 @@ class User(AbstractUser):
         verbose_name = '用户'           # 模型的可读名称
         verbose_name_plural = verbose_name  # 复数形式的可读名称
 
+# 地区模型，用于管理地区信息
+class Region(models.Model):
+    # 地区名称，使用CharField存储，最大长度100，必须唯一
+    name = models.CharField(max_length=100, unique=True, verbose_name='地区名称')
+    # 父地区，使用ForeignKey建立自引用关系，允许为空
+    # 用于构建地区层级结构，如省、市、县
+    parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='父地区')
+    # 地区级别，使用IntegerField存储，默认值为1
+    # 用于标识地区层级，如1-省，2-市，3-县
+    level = models.IntegerField(default=1, verbose_name='地区级别')
+    # 显式定义objects管理器，解决IDE警告
+    objects = models.Manager()
+    
+    # 模型元数据配置
+    class Meta:
+        verbose_name = '地区信息'         # 模型的可读名称
+        verbose_name_plural = verbose_name  # 复数形式的可读名称
+        ordering = ['name']               # 默认按地区名称排序
+
 # 景点信息模型，存储所有景点的详细信息
 class ScenicSpot(models.Model):
     DoesNotExist = None
@@ -67,9 +86,8 @@ class ScenicSpot(models.Model):
     # 关联的景点管理员，使用ForeignKey建立一对多关系，允许为空
     # 当关联的用户删除时，该字段设为NULL
     admin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='managed_scenic_spots', verbose_name='景点管理员')
-    # 关联的景点分类，使用ForeignKey建立多对一关系
-    # 当关联的分类删除时，该字段设为NULL
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='scenic_spots', verbose_name='分类')
+    # 景点分类，直接存储分类名称，使用CharField
+    category = models.CharField(max_length=50, default='自然风光类', verbose_name='分类')
     # 景点名称，使用CharField存储，最大长度100
     name = models.CharField(max_length=100, verbose_name='景点名称')
     # 景点描述，使用TextField存储，支持长文本
@@ -94,6 +112,8 @@ class ScenicSpot(models.Model):
     booking_count = models.IntegerField(default=0, verbose_name='预约人数')
     # 总票数，使用IntegerField存储，默认1000
     total_tickets = models.IntegerField(default=1000, verbose_name='总票数')
+    # 是否激活，使用BooleanField存储，默认值为True，用于控制景点是否上架
+    is_active = models.BooleanField(default=True, verbose_name='是否上架')
     # 创建时间，使用DateTimeField存储，自动添加当前时间
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     # 更新时间，使用DateTimeField存储，自动更新为当前时间
@@ -150,24 +170,7 @@ class Carousel(models.Model):
         verbose_name_plural = verbose_name  # 复数形式的可读名称
         ordering = ['order']              # 默认按轮播顺序排列
 
-# 地区模型，用于管理地区信息
-class Region(models.Model):
-    # 地区名称，使用CharField存储，最大长度100，必须唯一
-    name = models.CharField(max_length=100, unique=True, verbose_name='地区名称')
-    # 父地区，使用ForeignKey建立自引用关系，允许为空
-    # 用于构建地区层级结构，如省、市、县
-    parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='父地区')
-    # 地区级别，使用IntegerField存储，默认值为1
-    # 用于标识地区层级，如1-省，2-市，3-县
-    level = models.IntegerField(default=1, verbose_name='地区级别')
-    # 显式定义objects管理器，解决IDE警告
-    objects = models.Manager()
-    
-    # 模型元数据配置
-    class Meta:
-        verbose_name = '地区信息'         # 模型的可读名称
-        verbose_name_plural = verbose_name  # 复数形式的可读名称
-        ordering = ['name']               # 默认按地区名称排序
+
 
 # 门票类型模型，用于管理不同类型的门票
 class TicketType(models.Model):
@@ -267,6 +270,7 @@ class Order(models.Model):
         (2, '已取消'),  # 订单已取消
         (3, '已使用'),  # 门票已使用
         (4, '已退款'),  # 门票已退款
+        (5, '退款审核中'),  # 退款申请已提交，等待管理员审核
     )
     # 关联的用户，使用ForeignKey建立一对多关系，用户删除时订单也删除
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户')

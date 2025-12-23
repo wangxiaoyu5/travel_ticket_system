@@ -30,6 +30,8 @@
                                         <span class="badge bg-success">已完成</span>
                                     {% elif order.status == 4 %}
                                         <span class="badge bg-info">已退款</span>
+                                    {% elif order.status == 5 %}
+                                        <span class="badge bg-primary">退款审核中</span>
                                     {% endif %}
                                 </td>
                                 <td>{{ order.order_number }}</td>
@@ -47,6 +49,33 @@
                                                 {% csrf_token %}
                                                 <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('确定要取消这个订单吗？')">取消订单</button>
                                             </form>
+                                        {% elif order.status == 1 %}
+                                            <!-- 已支付订单 -->
+                                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#refundModal{{ order.id }}">申请退款</button>
+                                            <!-- 退款模态框 -->
+                                            <div class="modal fade" id="refundModal{{ order.id }}" tabindex="-1" aria-labelledby="refundModalLabel{{ order.id }}" aria-hidden="true">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="refundModalLabel{{ order.id }}">申请退款</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <form method="post" action="{% url 'ticket:apply_refund' order_id=order.id %}">
+                                                            {% csrf_token %}
+                                                            <div class="modal-body">
+                                                                <div class="mb-3">
+                                                                    <label for="refundReason{{ order.id }}" class="form-label">退款原因</label>
+                                                                    <textarea class="form-control" id="refundReason{{ order.id }}" name="refund_reason" rows="3" required></textarea>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                                                <button type="submit" class="btn btn-danger">提交申请</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         {% endif %}
                                         <!-- 所有状态都显示联系客服按钮 -->
                                         <a href="{% url 'ticket:contact_service' %}" class="btn btn-outline-secondary btn-sm">联系客服</a>

@@ -1,0 +1,35 @@
+{% extends 'scenic_admin/base.html' %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3>新增套票</h3>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="name" class="form-label">套票名称</label>
+                    <input type="text" class="form-control" id="name" name="name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="price" class="form-label">套票价格</label>
+                    <input type="number" class="form-control" id="price" name="price" step="0.01" min="0" required>
+                </div>
+                <div class="mb-3">
+                    <label for="stock" class="form-label">库存数量</label>
+                    <input type="number" class="form-control" id="stock" name="stock" min="0" required>
+                </div>
+                <div class="mb-3">
+                    <label for="is_active" class="form-label">是否激活</label>
+                    <select class="form-select" id="is_active" name="is_active">
+                        <option value="1">是</option>
+                        <option value="0">否</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">保存</button>
+                <a href="{% url 'ticket:scenic_admin_package_tickets' %}" class="btn btn-secondary">取消</a>
+            </form>
+        </div>
+    </div>
+{% endblock %}

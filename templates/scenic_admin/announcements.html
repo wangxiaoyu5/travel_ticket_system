@@ -1,0 +1,78 @@
+{% extends 'scenic_admin/base.html' %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3>公告管理</h3>
+        </div>
+        <div class="card-body">
+            <!-- 操作栏 -->
+            <form method="post" action="{% url 'ticket:scenic_admin_batch_delete_announcements' %}" id="announcement-form">
+                {% csrf_token %}
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="btn-group">
+                            <a href="{% url 'ticket:scenic_admin_add_announcement' %}" class="btn btn-success">新增公告</a>
+                            <button type="submit" class="btn btn-danger">批量删除</button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="请输入标题搜索">
+                            <button class="btn btn-primary" type="button">搜索</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 公告列表 -->
+                <div class="table-responsive">
+                    <table class="table table-striped w-100">
+                        <thead>
+                            <tr>
+                                <th scope="col"><input type="checkbox" id="select-all"></th>
+                                <th scope="col">标题</th>
+                                <th scope="col">创建时间</th>
+                                <th scope="col">状态</th>
+                                <th scope="col">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if announcements %}
+                                {% for announcement in announcements %}
+                                    <tr>
+                                        <td><input type="checkbox" name="announcement_ids" value="{{ announcement.id }}"></td>
+                                        <td>{{ announcement.title }}</td>
+                                        <td>{{ announcement.created_at|date:"Y-m-d H:i:s" }}</td>
+                                        <td>
+                                            <span class="badge bg-success">已发布</span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{% url 'ticket:scenic_admin_edit_announcement' announcement.id %}" class="btn btn-sm btn-primary">编辑</a>
+                                                <a href="{% url 'ticket:scenic_admin_delete_announcement' announcement.id %}" class="btn btn-sm btn-danger" onclick="return confirm('确定要删除这条公告吗？');">删除</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center">暂无公告数据</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // 全选/取消全选功能
+        document.getElementById('select-all').addEventListener('change', function() {
+            var checkboxes = document.querySelectorAll('input[name="announcement_ids"]');
+            checkboxes.forEach(function(checkbox) {
+                checkbox.checked = this.checked;
+            }.bind(this));
+        });
+    </script>
+{% endblock %}

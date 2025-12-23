@@ -7,27 +7,31 @@
         </div>
         <div class="card-body">
             <!-- 操作栏 -->
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="btn-group">
-                        <a href="{% url 'ticket:scenic_admin_orders' %}" class="btn btn-primary">全部订单</a>
-                        <a href="{% url 'ticket:scenic_admin_orders' %}?status=0" class="btn btn-outline-primary">待支付</a>
-                        <a href="{% url 'ticket:scenic_admin_orders' %}?status=1" class="btn btn-outline-primary">已支付</a>
-                        <a href="{% url 'ticket:scenic_admin_orders' %}?status=2" class="btn btn-outline-primary">已取消</a>
-                        <a href="{% url 'ticket:scenic_admin_orders' %}?status=3" class="btn btn-outline-primary">已使用</a>
-                        <a href="{% url 'ticket:scenic_admin_orders' %}?status=4" class="btn btn-outline-primary">已退款</a>
+            <form method="get" action="{% url 'ticket:scenic_admin_orders' %}">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="btn-group">
+                            <a href="{% url 'ticket:scenic_admin_orders' %}" class="btn {% if not current_status %}btn-primary{% else %}btn-outline-primary{% endif %}">全部订单</a>
+                            <a href="{% url 'ticket:scenic_admin_orders' %}?status=0" class="btn {% if current_status == '0' %}btn-primary{% else %}btn-outline-primary{% endif %}">待支付</a>
+                            <a href="{% url 'ticket:scenic_admin_orders' %}?status=1" class="btn {% if current_status == '1' %}btn-primary{% else %}btn-outline-primary{% endif %}">已支付</a>
+                            <a href="{% url 'ticket:scenic_admin_orders' %}?status=2" class="btn {% if current_status == '2' %}btn-primary{% else %}btn-outline-primary{% endif %}">已取消</a>
+                            <a href="{% url 'ticket:scenic_admin_orders' %}?status=3" class="btn {% if current_status == '3' %}btn-primary{% else %}btn-outline-primary{% endif %}">已使用</a>
+                            <a href="{% url 'ticket:scenic_admin_orders' %}?status=4" class="btn {% if current_status == '4' %}btn-primary{% else %}btn-outline-primary{% endif %}">已退款</a>
+                            <a href="{% url 'ticket:scenic_admin_orders' %}?status=5" class="btn {% if current_status == '5' %}btn-primary{% else %}btn-outline-primary{% endif %}">退款审核中</a>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="q" placeholder="请输入订单号、用户名或邮箱搜索" value="{{ search_query }}">
+                            <button class="btn btn-primary" type="submit">搜索</button>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <input type="text" class="form-control" placeholder="请输入订单号或用户邮箱搜索">
-                        <button class="btn btn-primary" type="button">搜索</button>
-                    </div>
-                </div>
-            </div>
+            </form>
             
             <!-- 订单列表 -->
-            <table class="table table-striped">
+            <div class="table-responsive">
+            <table class="table table-striped w-100">
                 <thead>
                     <tr>
                         <th scope="col">订单号</th>
@@ -59,12 +63,31 @@
                             <span class="badge bg-info">已使用</span>
                             {% elif order.status == 4 %}
                             <span class="badge bg-secondary">已退款</span>
+                            {% elif order.status == 5 %}
+                            <span class="badge bg-primary">退款审核中</span>
                             {% endif %}
                         </td>
                         <td>{{ order.created_at|date:"Y-m-d H:i:s" }}</td>
                         <td>
                             <div class="btn-group">
-                                <button type="button" class="btn btn-primary btn-sm">查看详情</button>
+                                <a href="{% url 'ticket:scenic_admin_order_detail' order_id=order.id %}" class="btn btn-primary btn-sm">查看详情</a>
+                                {% if order.status == 1 %}
+                                    <!-- 已支付订单可以发起退款 -->
+                                    <form method="post" action="{% url 'ticket:scenic_admin_refund_order' order_id=order.id %}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('确定要发起该订单的退款吗？')">发起退款</button>
+                                    </form>
+                                {% elif order.status == 5 %}
+                                    <!-- 退款审核中的订单 -->
+                                    <form method="post" action="{% url 'ticket:scenic_admin_refund_order' order_id=order.id %}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('确定要通过该退款申请吗？')">审核通过</button>
+                                    </form>
+                                    <form method="post" action="{% url 'ticket:scenic_admin_refund_reject' order_id=order.id %}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('确定要拒绝该退款申请吗？')">审核拒绝</button>
+                                    </form>
+                                {% endif %}
                                 <button type="button" class="btn btn-danger btn-sm">删除</button>
                             </div>
                         </td>
@@ -76,6 +99,7 @@
                     {% endfor %}
                 </tbody>
             </table>
+            </div>
         </div>
     </div>
 {% endblock %}

@@ -1,0 +1,65 @@
+{% extends 'admin/base.html' %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3>地区分类管理</h3>
+        </div>
+        <div class="card-body">
+            <!-- 操作栏 -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <a href="{% url 'ticket:admin_add_region' %}" class="btn btn-primary">添加地区</a>
+                </div>
+                <div class="col-md-6">
+                    <form method="get" action="{% url 'ticket:admin_region_list' %}" class="d-flex justify-content-end">
+                        <input type="text" class="form-control me-2" name="search" placeholder="搜索地区名称" value="{{ search_keyword }}">
+                        <button type="submit" class="btn btn-outline-primary">搜索</button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- 地区列表 -->
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>地区名称</th>
+                            <th>父地区</th>
+                            <th>地区级别</th>
+                            <th>创建时间</th>
+                            <th>更新时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for region in regions %}
+                            <tr>
+                                <td>{{ region.id }}</td>
+                                <td>{{ region.name }}</td>
+                                <td>{{ region.parent.name|default:'无父地区' }}</td>
+                                <td>{{ region.level }}</td>
+                                <td>{{ region.created_at|date:"Y-m-d H:i:s" }}</td>
+                                <td>{{ region.updated_at|date:"Y-m-d H:i:s" }}</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{% url 'ticket:admin_edit_region' region_id=region.id %}" class="btn btn-primary btn-sm">编辑</a>
+                                        <form method="post" action="{% url 'ticket:admin_delete_region' region_id=region.id %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('确定要删除这个地区吗？')">删除</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center">暂无地区数据</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endblock %}

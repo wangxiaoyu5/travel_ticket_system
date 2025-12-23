@@ -7,62 +7,143 @@
         </div>
         <div class="card-body">
             <!-- 操作栏 -->
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="btn-group">
-                        <a href="{% url 'ticket:scenic_admin_comments' %}" class="btn btn-primary">全部留言</a>
-                        <a href="{% url 'ticket:scenic_admin_comments' %}?replied=replied" class="btn btn-outline-primary">已回复</a>
-                        <a href="{% url 'ticket:scenic_admin_comments' %}?replied=unreplied" class="btn btn-outline-primary">未回复</a>
+            <form method="get" action="{% url 'ticket:scenic_admin_comments' %}" id="comment-form">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="btn-group">
+                            <a href="{% url 'ticket:scenic_admin_comments' %}" class="btn {% if not current_replied %}btn-primary{% else %}btn-outline-primary{% endif %}">全部留言</a>
+                            <a href="{% url 'ticket:scenic_admin_comments' %}?replied=replied" class="btn {% if current_replied == 'replied' %}btn-primary{% else %}btn-outline-primary{% endif %}">已回复</a>
+                            <a href="{% url 'ticket:scenic_admin_comments' %}?replied=unreplied" class="btn {% if current_replied == 'unreplied' %}btn-primary{% else %}btn-outline-primary{% endif %}">未回复</a>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="q" placeholder="请输入用户名或留言内容搜索" value="{{ search_query }}">
+                            <button type="submit" class="btn btn-primary">搜索</button>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <input type="text" class="form-control" placeholder="请输入用户名或留言内容搜索">
-                        <button class="btn btn-primary" type="button">搜索</button>
+            </form>
+            
+            <!-- 留言列表 -->
+            <div class="table-responsive">
+                <table class="table table-striped w-100">
+                    <thead>
+                        <tr>
+                            <th scope="col">用户</th>
+                            <th scope="col">景点</th>
+                            <th scope="col">留言内容</th>
+                            <th scope="col">留言时间</th>
+                            <th scope="col">回复状态</th>
+                            <th scope="col">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for comment in comments %}
+                        <tr>
+                            <td>{{ comment.user.username }}</td>
+                            <td>{{ comment.scenic_spot.name }}</td>
+                            <td>{{ comment.content|truncatechars:50 }}</td>
+                            <td>{{ comment.created_at|date:"Y-m-d H:i:s" }}</td>
+                            <td>
+                                {% if comment.is_replied %}
+                                <span class="badge bg-success">已回复</span>
+                                {% else %}
+                                <span class="badge bg-warning">未回复</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <!-- 回复按钮，点击弹出回复模态框 -->
+                                    <button type="button" class="btn {% if comment.is_replied %}btn-info{% else %}btn-primary{% endif %} btn-sm" data-bs-toggle="modal" data-bs-target="#replyModal" onclick="setCommentData({{ comment.id }}, {{ comment.is_replied|lower }}, '{{ comment.reply|default:''|escapejs }}')">{{ comment.is_replied|yesno:"查看回复,回复" }}</button>
+                                    <!-- 删除按钮，链接到删除视图 -->
+                                    <a href="{% url 'ticket:scenic_admin_delete_comment' comment.id %}" class="btn btn-danger btn-sm" onclick="return confirm('确定要删除这条留言吗？')">删除</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">暂无留言数据</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 回复模态框 -->
+            <div class="modal fade" id="replyModal" tabindex="-1" aria-labelledby="replyModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="replyModalLabel">回复留言</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        
+                        <!-- 查看回复内容区域 -->
+                        <div id="view-reply-content" class="modal-body d-none">
+                            <div class="mb-3">
+                                <label class="form-label">回复内容</label>
+                                <div class="border p-3 bg-light rounded" id="existing-reply"></div>
+                            </div>
+                            <div class="text-end">
+                                <button type="button" class="btn btn-primary" id="edit-reply-btn">编辑回复</button>
+                            </div>
+                        </div>
+                        
+                        <!-- 回复表单区域 -->
+                        <form method="post" action="" id="reply-form">
+                            {% csrf_token %}
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label for="reply_content" class="form-label">回复内容</label>
+                                    <textarea class="form-control" id="reply_content" name="reply_content" rows="5" required></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                <button type="submit" class="btn btn-primary">保存回复</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
             
-            <!-- 留言列表 -->
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th scope="col">用户</th>
-                        <th scope="col">景点</th>
-                        <th scope="col">留言内容</th>
-                        <th scope="col">留言时间</th>
-                        <th scope="col">回复状态</th>
-                        <th scope="col">操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for comment in comments %}
-                    <tr>
-                        <td>{{ comment.user.username }}</td>
-                        <td>{{ comment.scenic_spot.name }}</td>
-                        <td>{{ comment.content|truncatechars:50 }}</td>
-                        <td>{{ comment.created_at|date:"Y-m-d H:i:s" }}</td>
-                        <td>
-                            {% if comment.is_replied %}
-                            <span class="badge bg-success">已回复</span>
-                            {% else %}
-                            <span class="badge bg-warning">未回复</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="btn-group">
-                                <button type="button" class="btn btn-primary btn-sm">查看详情</button>
-                                <button type="button" class="btn btn-danger btn-sm">删除</button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6" class="text-center">暂无留言数据</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <script>
+                // 设置留言数据，用于回复或查看回复
+                function setCommentData(commentId, isReplied, existingReply) {
+                    const modalTitle = document.getElementById('replyModalLabel');
+                    const viewReplyContent = document.getElementById('view-reply-content');
+                    const replyForm = document.getElementById('reply-form');
+                    const existingReplyDiv = document.getElementById('existing-reply');
+                    const replyContentTextarea = document.getElementById('reply_content');
+                    const editReplyBtn = document.getElementById('edit-reply-btn');
+                    
+                    // 更新表单的action属性
+                    replyForm.action = `{% url 'ticket:scenic_admin_reply_comment' 0 %}`.replace('0', commentId);
+                    
+                    if (isReplied) {
+                        // 查看已有的回复
+                        modalTitle.textContent = '查看回复';
+                        viewReplyContent.classList.remove('d-none');
+                        replyForm.classList.add('d-none');
+                        existingReplyDiv.textContent = existingReply;
+                    } else {
+                        // 显示回复表单
+                        modalTitle.textContent = '回复留言';
+                        viewReplyContent.classList.add('d-none');
+                        replyForm.classList.remove('d-none');
+                        replyContentTextarea.value = '';
+                    }
+                    
+                    // 编辑回复按钮点击事件
+                    editReplyBtn.onclick = function() {
+                        modalTitle.textContent = '编辑回复';
+                        viewReplyContent.classList.add('d-none');
+                        replyForm.classList.remove('d-none');
+                        replyContentTextarea.value = existingReply;
+                    };
+                }
+            </script>
         </div>
     </div>
 {% endblock %}

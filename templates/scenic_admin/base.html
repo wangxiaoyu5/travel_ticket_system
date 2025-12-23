@@ -75,52 +75,47 @@
             <div class="sidebar p-3">
                 <ul class="nav nav-pills flex-column">
                     <li class="nav-item mb-2">
-                        <a class="nav-link active" href="{% url 'ticket:scenic_admin_index' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'scenic_admin_index' %}active{% endif %}" href="{% url 'ticket:scenic_admin_index' %}">
                             <i class="bi bi-speedometer me-2"></i> 控制台
                         </a>
                     </li>
                     <li class="nav-item mb-2">
-                        <a class="nav-link" href="{% url 'ticket:scenic_admin_scenic_spots' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'scenic_admin_scenic_spots' %}active{% endif %}" href="{% url 'ticket:scenic_admin_scenic_spots' %}">
                             <i class="bi bi-geo-alt me-2"></i> 景点信息管理
                         </a>
                     </li>
                     <li class="nav-item mb-2">
-                        <a class="nav-link" href="{% url 'ticket:scenic_admin_package_tickets' %}">
-                            <i class="bi bi-ticket-perforated me-2"></i> 套票管理
-                        </a>
-                    </li>
-                    <li class="nav-item mb-2">
-                        <a class="nav-link" href="{% url 'ticket:scenic_admin_ticket_types' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'scenic_admin_ticket_types' %}active{% endif %}" href="{% url 'ticket:scenic_admin_ticket_types' %}">
                             <i class="bi bi-ticket me-2"></i> 门票类型管理
                         </a>
                     </li>
                     <li class="nav-item mb-2">
-                        <a class="nav-link" href="{% url 'ticket:scenic_admin_orders' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'scenic_admin_orders' %}active{% endif %}" href="{% url 'ticket:scenic_admin_orders' %}">
                             <i class="bi bi-list-check me-2"></i> 订单管理
                         </a>
                     </li>
                     <li class="nav-item mb-2">
-                        <a class="nav-link" href="{% url 'ticket:scenic_admin_statistics' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'scenic_admin_statistics' %}active{% endif %}" href="{% url 'ticket:scenic_admin_statistics' %}">
                             <i class="bi bi-bar-chart-line me-2"></i> 数据统计
                         </a>
                     </li>
                     <li class="nav-item mb-2">
-                        <a class="nav-link" href="{% url 'ticket:scenic_admin_comments' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'scenic_admin_comments' %}active{% endif %}" href="{% url 'ticket:scenic_admin_comments' %}">
                             <i class="bi bi-chat-dots me-2"></i> 留言管理
                         </a>
                     </li>
                     <li class="nav-item mb-2">
-                        <a class="nav-link" href="{% url 'ticket:scenic_admin_news_announcements' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'scenic_admin_announcements' %}active{% endif %}" href="{% url 'ticket:scenic_admin_announcements' %}">
                             <i class="bi bi-megaphone me-2"></i> 公告管理
                         </a>
                     </li>
                     <li class="nav-item mb-2">
-                        <a class="nav-link" href="{% url 'ticket:scenic_admin_news_announcements' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'scenic_admin_news' %}active{% endif %}" href="{% url 'ticket:scenic_admin_news' %}">
                             <i class="bi bi-newspaper me-2"></i> 资讯管理
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'ticket:scenic_admin_account' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'scenic_admin_account' %}active{% endif %}" href="{% url 'ticket:scenic_admin_account' %}">
                             <i class="bi bi-person-circle me-2"></i> 账户信息管理
                         </a>
                     </li>
@@ -130,6 +125,18 @@
         
         <!-- 右侧内容区 -->
         <div class="col-md-10 content">
+            <!-- 消息提示 -->
+            {% if messages %}
+            <div class="container mt-3">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
             {% block content %}
             {% endblock %}
         </div>

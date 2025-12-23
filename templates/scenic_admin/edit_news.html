@@ -1,0 +1,31 @@
+{% extends 'scenic_admin/base.html' %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3>编辑资讯</h3>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="title" class="form-label">资讯标题</label>
+                    <input type="text" class="form-control" id="title" name="title" value="{{ news_item.title }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="content" class="form-label">资讯内容</label>
+                    <textarea class="form-control" id="content" name="content" rows="5" required>{{ news_item.content }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="image" class="form-label">资讯图片</label>
+                    <input type="file" class="form-control" id="image" name="image">
+                    {% if news_item.image %}
+                        <small class="form-text text-muted">当前图片: <a href="{{ news_item.image.url }}" target="_blank">{{ news_item.image.name }}</a></small>
+                    {% endif %}
+                </div>
+                <button type="submit" class="btn btn-primary">保存</button>
+                <a href="{% url 'ticket:scenic_admin_news' %}" class="btn btn-secondary">取消</a>
+            </form>
+        </div>
+    </div>
+{% endblock %}

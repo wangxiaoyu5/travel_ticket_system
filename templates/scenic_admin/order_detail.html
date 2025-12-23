@@ -1,0 +1,112 @@
+{% extends 'scenic_admin/base.html' %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3>订单详情</h3>
+        </div>
+        <div class="card-body">
+            <!-- 订单基本信息 -->
+            <div class="mb-4">
+                <h5 class="border-bottom pb-2 mb-3">订单基本信息</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>订单号：</strong>{{ order.order_number }}</p>
+                        <p><strong>订单状态：</strong>
+                            {% if order.status == 0 %}
+                                <span class="badge bg-warning">待支付</span>
+                            {% elif order.status == 1 %}
+                                <span class="badge bg-success">已支付</span>
+                            {% elif order.status == 2 %}
+                                <span class="badge bg-danger">已取消</span>
+                            {% elif order.status == 3 %}
+                                <span class="badge bg-info">已使用</span>
+                            {% elif order.status == 4 %}
+                                <span class="badge bg-secondary">已退款</span>
+                            {% elif order.status == 5 %}
+                                <span class="badge bg-primary">退款审核中</span>
+                            {% endif %}
+                        </p>
+                        <p><strong>创建时间：</strong>{{ order.created_at|date:"Y-m-d H:i:s" }}</p>
+                        <p><strong>更新时间：</strong>{{ order.updated_at|date:"Y-m-d H:i:s" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>使用日期：</strong>{{ order.use_date|date:"Y-m-d" }}</p>
+                        <p><strong>数量：</strong>{{ order.quantity }}</p>
+                        <p><strong>订单总价：</strong>¥{{ order.total_price|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 景点信息 -->
+            <div class="mb-4">
+                <h5 class="border-bottom pb-2 mb-3">景点信息</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>景点名称：</strong>{{ order.scenic_spot.name }}</p>
+                        <p><strong>景点地址：</strong>{{ order.scenic_spot.address }}</p>
+                        <p><strong>开放时间：</strong>{{ order.scenic_spot.opening_hours }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 门票信息 -->
+            <div class="mb-4">
+                <h5 class="border-bottom pb-2 mb-3">门票信息</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>门票类型：</strong>{{ order.ticket_type.name }}</p>
+                        <p><strong>门票类型：</strong>
+                            {% if order.ticket_type.type == 'single' %}
+                                单票
+                            {% elif order.ticket_type.type == 'package' %}
+                                套票
+                            {% endif %}
+                        </p>
+                        <p><strong>门票价格：</strong>¥{{ order.ticket_type.price|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 用户信息 -->
+            <div class="mb-4">
+                <h5 class="border-bottom pb-2 mb-3">用户信息</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>用户名：</strong>{{ order.user.username }}</p>
+                        <p><strong>邮箱：</strong>{{ order.user.email }}</p>
+                        <p><strong>手机号：</strong>{{ order.user.phone|default:'未填写' }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 退款信息 -->
+            {% if order.refund_reason or order.status == 4 or order.status == 5 %}
+            <div class="mb-4">
+                <h5 class="border-bottom pb-2 mb-3">退款信息</h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>退款原因：</strong>{{ order.refund_reason|default:'未填写' }}</p>
+                        <p><strong>退款申请时间：</strong>{{ order.refund_apply_time|date:"Y-m-d H:i:s"|default:'未申请退款' }}</p>
+                        <p><strong>退款审核时间：</strong>{{ order.refund_audit_time|date:"Y-m-d H:i:s"|default:'未审核' }}</p>
+                        <p><strong>退款金额：</strong>¥{{ order.refund_amount|floatformat:2|default:'0.00' }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- 操作按钮 -->
+            <div class="mt-4">
+                <a href="{% url 'ticket:scenic_admin_orders' %}" class="btn btn-secondary">返回订单列表</a>
+                {% if order.status == 1 %}
+                    <!-- 已支付订单可以发起退款 -->
+                    <a href="#" class="btn btn-warning" onclick="if(confirm('确定要发起该订单的退款吗？')) window.location.href='{% url 'ticket:scenic_admin_refund_order' order_id=order.id %}'">发起退款</a>
+                {% elif order.status == 5 %}
+                    <!-- 退款审核中的订单 -->
+                    <a href="#" class="btn btn-success" onclick="if(confirm('确定要通过该退款申请吗？')) window.location.href='{% url 'ticket:scenic_admin_refund_order' order_id=order.id %}'">审核通过</a>
+                    <a href="#" class="btn btn-danger" onclick="if(confirm('确定要拒绝该退款申请吗？')) window.location.href='{% url 'ticket:scenic_admin_refund_reject' order_id=order.id %}'">审核拒绝</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

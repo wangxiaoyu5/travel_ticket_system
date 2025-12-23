@@ -7,12 +7,14 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 # 导入Django ORM模型模块
 from django.db import models
+# 导入时区模块，用于处理时间
+from django.utils import timezone
 # 导入JsonResponse，用于返回JSON响应
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, reverse
 
 # 导入自定义模型，用于数据库查询
-from .models import ScenicSpot, News, Carousel, User, Cart, Order, ScenicSpotComment, TicketType
+from .models import ScenicSpot, News, Carousel, User, Cart, Order, ScenicSpotComment, TicketType, BrowseHistory, Category, Region
 
 
 # 首页视图函数，处理网站首页的请求
@@ -60,6 +62,16 @@ def user_login(request):
                 if str(user.role) == role:
                     # 使用Django的login函数登录用户，创建会话
                     login(request, user)
+                    
+                    # 检查会话中是否有购票选择，如果有则跳转到购票页面
+                    buy_ticket_selection = request.session.get('buy_ticket_selection')
+                    if buy_ticket_selection and user.role == 0:  # 只有游客角色需要
+                        # 删除会话中的购票选择，避免重复使用
+                        spot_id = buy_ticket_selection.pop('spot_id')
+                        request.session.save()
+                        # 跳转到购票页面
+                        return redirect(reverse('ticket:buy_ticket', kwargs={'spot_id': spot_id}))
+                    
                     # 根据用户角色重定向到不同页面
                     if user.role == 2:  # 网站管理员
                         return redirect(reverse('ticket:admin_index'))
@@ -180,17 +192,14 @@ def scenic_admin_edit_scenic_spot(request, spot_id):
         name = request.POST.get('name')
         description = request.POST.get('description')
         price = request.POST.get('price')
-        image = request.FILES.get('image')
+        image = request.FILES.get('cover')  # 模板中是cover，不是image
         address = request.POST.get('address')
-        opening_hours = request.POST.get('opening_hours')
-        is_hot = request.POST.get('is_hot') == 'on'
-        region = request.POST.get('region')
         category = request.POST.get('category')
-        tags = request.POST.get('tags')
-        total_tickets = request.POST.get('total_tickets')
+        stock = request.POST.get('stock')  # 模板中是stock，不是total_tickets
+        status = request.POST.get('status')  # 模板中是status，用于设置is_active
 
         # 表单验证
-        if not name or not description or not price or not address or not opening_hours:
+        if not name or not description or not price or not address or not category or not stock:
             messages.error(request, '请填写所有必填字段')
             return render(request, 'scenic_admin/edit_scenic_spot.html', {'scenic_spot': scenic_spot})
 
@@ -200,12 +209,9 @@ def scenic_admin_edit_scenic_spot(request, spot_id):
             scenic_spot.description = description
             scenic_spot.price = float(price)
             scenic_spot.address = address
-            scenic_spot.opening_hours = opening_hours
-            scenic_spot.is_hot = is_hot
-            scenic_spot.region = region
             scenic_spot.category = category
-            scenic_spot.tags = tags
-            scenic_spot.total_tickets = int(total_tickets) if total_tickets else 0
+            scenic_spot.total_tickets = int(stock)
+            scenic_spot.is_active = status == '1'  # 将status转换为is_active
 
             # 处理图片上传
             if image:
@@ -234,25 +240,22 @@ def scenic_admin_add_scenic_spot(request):
     if request.method == 'POST':
         # 获取当前景点管理员
         admin = request.user
-
+        
         # 从POST请求中获取表单数据
         name = request.POST.get('name')
         description = request.POST.get('description')
         price = request.POST.get('price')
-        image = request.FILES.get('image')
+        image = request.FILES.get('cover')  # 模板中是cover，不是image
         address = request.POST.get('address')
-        opening_hours = request.POST.get('opening_hours')
-        is_hot = request.POST.get('is_hot') == 'on'
-        region = request.POST.get('region')
         category = request.POST.get('category')
-        tags = request.POST.get('tags')
-        total_tickets = request.POST.get('total_tickets')
-
+        stock = request.POST.get('stock')  # 模板中是stock，不是total_tickets
+        status = request.POST.get('status')  # 模板中有status字段，用于设置is_active
+        
         # 表单验证
-        if not name or not description or not price or not address or not opening_hours or not image:
+        if not name or not description or not price or not address or not category or not stock or not image:
             messages.error(request, '请填写所有必填字段')
             return render(request, 'scenic_admin/add_scenic_spot.html')
-
+        
         try:
             # 创建新景点，关联到当前管理员
             scenic_spot = ScenicSpot.objects.create(
@@ -262,44 +265,246 @@ def scenic_admin_add_scenic_spot(request):
                 price=float(price),
                 image=image,
                 address=address,
-                opening_hours=opening_hours,
-                is_hot=is_hot,
-                region=region,
                 category=category,
-                tags=tags,
-                total_tickets=int(total_tickets) if total_tickets else 0
+                total_tickets=int(stock),
+                is_active=status == '1',
+                # 设置默认值，因为模板中没有这些字段
+                opening_hours='',
+                is_hot=False,
+                region='',
+                tags=''
             )
-
+            
             # 显示成功消息
             messages.success(request, '景点添加成功')
-
+            
             # 重定向到景点列表页面
             return redirect(reverse('ticket:scenic_admin_scenic_spots'))
         except Exception as e:
             # 显示错误消息
             messages.error(request, f'添加景点失败: {str(e)}')
             return render(request, 'scenic_admin/add_scenic_spot.html')
-
+    
     # GET请求，渲染新增景点表单
     return render(request, 'scenic_admin/add_scenic_spot.html')
 
 
-# 套票管理视图
+# 景点批量操作视图
 @scenic_admin_required
-def scenic_admin_package_tickets(request):
-    return render(request, 'scenic_admin/package_tickets.html')
-
-
-# 新增套票视图
-@scenic_admin_required
-def scenic_admin_add_package_ticket(request):
-    return render(request, 'scenic_admin/add_package_ticket.html')
+def scenic_admin_batch_operate_scenic_spots(request):
+    if request.method == 'POST':
+        # 获取操作类型
+        operation = request.POST.get('operation')
+        
+        try:
+            # 获取当前景点管理员
+            admin = request.user
+            
+            # 处理单个景点操作
+            if operation.startswith('activate_single_') or operation.startswith('deactivate_single_') or operation.startswith('delete_single_'):
+                # 提取景点ID
+                spot_id = int(operation.split('_')[-1])
+                
+                # 获取单个景点
+                scenic_spot = ScenicSpot.objects.get(admin=admin, id=spot_id)
+                
+                if operation.startswith('activate_single_'):
+                    # 单个景点上架
+                    scenic_spot.is_active = True
+                    scenic_spot.save()
+                    messages.success(request, f'成功上架景点: {scenic_spot.name}')
+                elif operation.startswith('deactivate_single_'):
+                    # 单个景点下架
+                    scenic_spot.is_active = False
+                    scenic_spot.save()
+                    messages.success(request, f'成功下架景点: {scenic_spot.name}')
+                elif operation.startswith('delete_single_'):
+                    # 单个景点删除
+                    scenic_spot.delete()
+                    messages.success(request, '成功删除景点')
+            else:
+                # 处理批量操作
+                spot_ids = request.POST.getlist('spot_ids')
+                
+                if not spot_ids:
+                    messages.error(request, '请选择要操作的景点')
+                    return redirect(reverse('ticket:scenic_admin_scenic_spots'))
+                
+                # 获取当前管理员管理的景点
+                scenic_spots = ScenicSpot.objects.filter(admin=admin, id__in=spot_ids)
+                
+                if operation == 'activate':
+                    # 批量上架：设置is_active=True
+                    scenic_spots.update(is_active=True)
+                    messages.success(request, f'成功上架 {scenic_spots.count()} 个景点')
+                elif operation == 'deactivate':
+                    # 批量下架：设置is_active=False
+                    scenic_spots.update(is_active=False)
+                    messages.success(request, f'成功下架 {scenic_spots.count()} 个景点')
+                elif operation == 'delete':
+                    # 批量删除
+                    scenic_spots.delete()
+                    messages.success(request, f'成功删除 {len(spot_ids)} 个景点')
+        except ScenicSpot.DoesNotExist:
+            messages.error(request, '景点不存在或无权限访问')
+        except Exception as e:
+            messages.error(request, f'操作失败: {str(e)}')
+    
+    return redirect(reverse('ticket:scenic_admin_scenic_spots'))
 
 
 # 门票类型管理视图
 @scenic_admin_required
 def scenic_admin_ticket_types(request):
-    return render(request, 'scenic_admin/ticket_types.html')
+    # 获取当前景点管理员
+    admin = request.user
+    
+    # 获取当前管理员管理的景点
+    scenic_spots = ScenicSpot.objects.filter(admin=admin)
+    scenic_ids = scenic_spots.values_list('id', flat=True)
+    
+    # 获取当前管理员管理的景点的门票类型
+    ticket_types = TicketType.objects.filter(scenic_spot__id__in=scenic_ids)
+    
+    # 构建上下文数据
+    context = {
+        'ticket_types': ticket_types
+    }
+    
+    return render(request, 'scenic_admin/ticket_types.html', context)
+
+
+# 新增门票类型视图
+@scenic_admin_required
+def scenic_admin_add_ticket_type(request):
+    # 获取当前景点管理员
+    admin = request.user
+    
+    # 获取当前管理员管理的景点
+    scenic_spots = ScenicSpot.objects.filter(admin=admin)
+    
+    if request.method == 'POST':
+        # 获取表单数据
+        name = request.POST.get('name')
+        type = request.POST.get('type')
+        price = request.POST.get('price')
+        stock = request.POST.get('stock')
+        is_active = request.POST.get('is_active') == '1'
+        
+        # 创建门票类型
+        try:
+            # 假设当前管理员只有一个景点，实际情况可能需要选择景点
+            scenic_spot = scenic_spots.first()
+            
+            ticket_type = TicketType(
+                scenic_spot=scenic_spot,
+                name=name,
+                type=type,
+                price=price,
+                stock=stock,
+                is_active=is_active
+            )
+            ticket_type.save()
+            
+            messages.success(request, '新增门票类型成功')
+            return redirect(reverse('ticket:scenic_admin_ticket_types'))
+        except Exception as e:
+            messages.error(request, f'新增门票类型失败: {str(e)}')
+    
+    # GET请求，渲染新增门票类型表单
+    context = {
+        'scenic_spots': scenic_spots
+    }
+    return render(request, 'scenic_admin/add_ticket_type.html', context)
+
+
+# 编辑门票类型视图
+@scenic_admin_required
+def scenic_admin_edit_ticket_type(request, ticket_id):
+    # 获取当前景点管理员
+    admin = request.user
+    
+    # 获取当前管理员管理的景点
+    scenic_spots = ScenicSpot.objects.filter(admin=admin)
+    scenic_ids = scenic_spots.values_list('id', flat=True)
+    
+    # 获取要编辑的门票类型
+    try:
+        ticket_type = TicketType.objects.get(id=ticket_id, scenic_spot__id__in=scenic_ids)
+    except TicketType.DoesNotExist:
+        messages.error(request, '门票类型不存在或无权限访问')
+        return redirect(reverse('ticket:scenic_admin_ticket_types'))
+    
+    if request.method == 'POST':
+        # 获取表单数据
+        name = request.POST.get('name')
+        type = request.POST.get('type')
+        price = request.POST.get('price')
+        stock = request.POST.get('stock')
+        is_active = request.POST.get('is_active') == '1'
+        
+        # 更新门票类型
+        try:
+            ticket_type.name = name
+            ticket_type.type = type
+            ticket_type.price = price
+            ticket_type.stock = stock
+            ticket_type.is_active = is_active
+            ticket_type.save()
+            
+            messages.success(request, '编辑门票类型成功')
+            return redirect(reverse('ticket:scenic_admin_ticket_types'))
+        except Exception as e:
+            messages.error(request, f'编辑门票类型失败: {str(e)}')
+    
+    # GET请求，渲染编辑门票类型表单
+    context = {
+        'scenic_spots': scenic_spots,
+        'ticket_type': ticket_type
+    }
+    return render(request, 'scenic_admin/add_ticket_type.html', context)
+
+
+# 批量操作门票类型视图
+@scenic_admin_required
+def scenic_admin_batch_operate_ticket_types(request):
+    if request.method == 'POST':
+        # 获取操作类型和选中的门票类型ID
+        operation = request.POST.get('operation')
+        ticket_ids = request.POST.getlist('ticket_ids')
+        
+        if not ticket_ids:
+            messages.error(request, '请选择要操作的门票类型')
+            return redirect(reverse('ticket:scenic_admin_ticket_types'))
+        
+        try:
+            # 获取当前景点管理员
+            admin = request.user
+            scenic_spots = ScenicSpot.objects.filter(admin=admin)
+            scenic_ids = scenic_spots.values_list('id', flat=True)
+            
+            # 获取当前管理员管理的景点的门票类型
+            tickets = TicketType.objects.filter(
+                id__in=ticket_ids,
+                scenic_spot__id__in=scenic_ids
+            )
+            
+            if operation == 'activate':
+                # 批量上架
+                tickets.update(is_active=True)
+                messages.success(request, f'成功上架 {tickets.count()} 个门票类型')
+            elif operation == 'deactivate':
+                # 批量下架
+                tickets.update(is_active=False)
+                messages.success(request, f'成功下架 {tickets.count()} 个门票类型')
+            elif operation == 'delete':
+                # 批量删除
+                tickets.delete()
+                messages.success(request, f'成功删除 {len(ticket_ids)} 个门票类型')
+        except Exception as e:
+            messages.error(request, f'操作失败: {str(e)}')
+    
+    return redirect(reverse('ticket:scenic_admin_ticket_types'))
 
 
 # 订单管理视图
@@ -314,12 +519,33 @@ def scenic_admin_orders(request):
     # 获取景点ID列表，用于后续查询
     scenic_ids = scenic_spots.values_list('id', flat=True)
 
-    # 从数据库获取该管理员管理的景点的订单
-    orders = Order.objects.filter(scenic_spot__id__in=scenic_ids).order_by('-created_at')
+    # 从请求中获取筛选条件
+    status = request.GET.get('status')
+    search_query = request.GET.get('q') or ''
+
+    # 构建查询
+    orders = Order.objects.filter(scenic_spot__id__in=scenic_ids)
+
+    # 根据状态筛选
+    if status is not None:
+        orders = orders.filter(status=status)
+
+    # 根据搜索条件筛选
+    if search_query:
+        orders = orders.filter(
+            models.Q(order_number__icontains=search_query) |
+            models.Q(user__username__icontains=search_query) |
+            models.Q(user__email__icontains=search_query)
+        )
+
+    # 按创建时间倒序排序
+    orders = orders.order_by('-created_at')
 
     # 构建上下文数据
     context = {
-        'orders': orders
+        'orders': orders,
+        'current_status': status,
+        'search_query': search_query
     }
 
     return render(request, 'scenic_admin/orders.html', context)
@@ -337,21 +563,162 @@ def scenic_admin_comments(request):
     # 获取景点ID列表，用于后续查询
     scenic_ids = scenic_spots.values_list('id', flat=True)
 
-    # 从数据库获取该管理员管理的景点的留言
-    comments = ScenicSpotComment.objects.filter(scenic_spot__id__in=scenic_ids).order_by('-created_at')
+    # 从请求中获取筛选条件
+    replied = request.GET.get('replied')
+    search_query = request.GET.get('q')
+
+    # 构建查询
+    comments = ScenicSpotComment.objects.filter(scenic_spot__id__in=scenic_ids)
+
+    # 根据回复状态筛选
+    if replied == 'replied':
+        comments = comments.filter(is_replied=True)
+    elif replied == 'unreplied':
+        comments = comments.filter(is_replied=False)
+
+    # 根据搜索条件筛选
+    if search_query:
+        comments = comments.filter(
+            models.Q(user__username__icontains=search_query) |
+            models.Q(content__icontains=search_query)
+        )
+
+    # 按创建时间倒序排序
+    comments = comments.order_by('-created_at')
 
     # 构建上下文数据
     context = {
-        'comments': comments
+        'comments': comments,
+        'current_replied': replied,
+        'search_query': search_query
     }
 
     return render(request, 'scenic_admin/comments.html', context)
 
 
+# 回复留言视图
+@scenic_admin_required
+def scenic_admin_reply_comment(request, comment_id):
+    if request.method == 'POST':
+        # 获取回复内容
+        reply_content = request.POST.get('reply_content')
+        
+        if not reply_content:
+            messages.error(request, '请输入回复内容')
+            return redirect(reverse('ticket:scenic_admin_comments'))
+        
+        try:
+            # 获取当前景点管理员
+            admin = request.user
+            
+            # 获取要回复的留言
+            comment = ScenicSpotComment.objects.get(id=comment_id, scenic_spot__admin=admin)
+            
+            # 更新留言的回复信息
+            comment.reply = reply_content
+            comment.is_replied = True
+            comment.reply_time = timezone.now()
+            comment.save()
+            
+            messages.success(request, '回复留言成功')
+        except ScenicSpotComment.DoesNotExist:
+            messages.error(request, '留言不存在或无权限访问')
+        except Exception as e:
+            messages.error(request, f'回复留言失败: {str(e)}')
+    
+    return redirect(reverse('ticket:scenic_admin_comments'))
+
+
+# 删除留言视图
+@scenic_admin_required
+def scenic_admin_delete_comment(request, comment_id):
+    try:
+        # 获取当前景点管理员
+        admin = request.user
+        
+        # 获取要删除的留言
+        comment = ScenicSpotComment.objects.get(id=comment_id, scenic_spot__admin=admin)
+        comment.delete()
+        messages.success(request, '删除留言成功')
+    except ScenicSpotComment.DoesNotExist:
+        messages.error(request, '留言不存在或无权限访问')
+    except Exception as e:
+        messages.error(request, f'删除留言失败: {str(e)}')
+    
+    return redirect(reverse('ticket:scenic_admin_comments'))
+
+
 # 数据统计视图
 @scenic_admin_required
 def scenic_admin_statistics(request):
-    return render(request, 'scenic_admin/statistics.html')
+    # 导入日期处理模块
+    from datetime import date, timedelta
+    import json
+
+    # 获取当前景点管理员
+    admin = request.user
+
+    # 从数据库获取该管理员管理的景点
+    scenic_spots = ScenicSpot.objects.filter(admin=admin)
+    # 获取景点ID列表，用于后续查询
+    scenic_ids = scenic_spots.values_list('id', flat=True)
+
+    # 总订单数：查询该景点的所有订单
+    total_orders = Order.objects.filter(scenic_spot__id__in=scenic_ids).count()
+
+    # 总销售额：计算该景点所有已支付订单的总价之和
+    total_sales = Order.objects.filter(scenic_spot__id__in=scenic_ids, status=1).aggregate(
+        total=models.Sum('total_price')
+    )['total'] or 0
+
+    # 平均订单金额：总销售额 / 已支付订单数
+    paid_orders_count = Order.objects.filter(scenic_spot__id__in=scenic_ids, status=1).count()
+    avg_order_amount = total_sales / paid_orders_count if paid_orders_count > 0 else 0
+
+    # 总访问量：查询该景点的所有浏览历史记录数
+    total_visits = BrowseHistory.objects.filter(scenic_spot__id__in=scenic_ids).count()
+
+    # 近7天订单趋势和销售额趋势
+    # 生成近7天的日期列表
+    today = date.today()
+    last_7_days = [today - timedelta(days=i) for i in range(6, -1, -1)]
+    # 格式化日期为字符串，用于图表标签
+    date_labels = [d.strftime('%Y-%m-%d') for d in last_7_days]
+    # 初始化订单数和销售额列表
+    order_counts = []
+    sales_amounts = []
+
+    # 计算每天的订单数和销售额
+    for d in last_7_days:
+        # 当天订单数
+        day_orders = Order.objects.filter(
+            scenic_spot__id__in=scenic_ids,
+            created_at__date=d
+        ).count()
+        order_counts.append(day_orders)
+        
+        # 当天销售额
+        day_sales = Order.objects.filter(
+            scenic_spot__id__in=scenic_ids,
+            created_at__date=d,
+            status=1
+        ).aggregate(
+            total=models.Sum('total_price')
+        )['total'] or 0
+        sales_amounts.append(float(day_sales))
+
+    # 构建上下文数据
+    context = {
+        'total_orders': total_orders,
+        'total_sales': total_sales,
+        'avg_order_amount': avg_order_amount,
+        'total_visits': total_visits,
+        'date_labels': json.dumps(date_labels),
+        'order_counts': json.dumps(order_counts),
+        'sales_amounts': json.dumps(sales_amounts)
+    }
+
+    return render(request, 'scenic_admin/statistics.html', context)
 
 
 # 账户信息管理视图
@@ -364,6 +731,236 @@ def scenic_admin_account(request):
 @scenic_admin_required
 def scenic_admin_news_announcements(request):
     return render(request, 'scenic_admin/news_announcements.html')
+
+
+# 公告管理视图
+@scenic_admin_required
+def scenic_admin_announcements(request):
+    # 获取公告列表（is_announcement=True）
+    announcements = News.objects.filter(is_announcement=True)
+    
+    # 构建上下文数据
+    context = {
+        'announcements': announcements
+    }
+    
+    return render(request, 'scenic_admin/announcements.html', context)
+
+
+# 新增公告视图
+@scenic_admin_required
+def scenic_admin_add_announcement(request):
+    if request.method == 'POST':
+        # 获取表单数据
+        title = request.POST.get('title')
+        content = request.POST.get('content')
+        image = request.FILES.get('image')
+        
+        # 创建公告
+        try:
+            announcement = News(
+                title=title,
+                content=content,
+                image=image,
+                is_announcement=True
+            )
+            announcement.save()
+            
+            messages.success(request, '新增公告成功')
+            return redirect(reverse('ticket:scenic_admin_announcements'))
+        except Exception as e:
+            messages.error(request, f'新增公告失败: {str(e)}')
+    
+    # GET请求，渲染新增公告表单
+    return render(request, 'scenic_admin/add_announcement.html')
+
+
+# 编辑公告视图
+@scenic_admin_required
+def scenic_admin_edit_announcement(request, announcement_id):
+    # 获取要编辑的公告
+    try:
+        announcement = News.objects.get(id=announcement_id, is_announcement=True)
+    except News.DoesNotExist:
+        messages.error(request, '公告不存在或无权限访问')
+        return redirect(reverse('ticket:scenic_admin_announcements'))
+    
+    if request.method == 'POST':
+        # 获取表单数据
+        title = request.POST.get('title')
+        content = request.POST.get('content')
+        image = request.FILES.get('image')
+        
+        # 更新公告
+        try:
+            announcement.title = title
+            announcement.content = content
+            if image:
+                announcement.image = image
+            announcement.save()
+            
+            messages.success(request, '编辑公告成功')
+            return redirect(reverse('ticket:scenic_admin_announcements'))
+        except Exception as e:
+            messages.error(request, f'编辑公告失败: {str(e)}')
+    
+    # GET请求，渲染编辑公告表单
+    context = {
+        'announcement': announcement
+    }
+    return render(request, 'scenic_admin/edit_announcement.html', context)
+
+
+# 删除公告视图
+@scenic_admin_required
+def scenic_admin_delete_announcement(request, announcement_id):
+    # 获取要删除的公告
+    try:
+        announcement = News.objects.get(id=announcement_id, is_announcement=True)
+        announcement.delete()
+        messages.success(request, '删除公告成功')
+    except News.DoesNotExist:
+        messages.error(request, '公告不存在或无权限访问')
+    except Exception as e:
+        messages.error(request, f'删除公告失败: {str(e)}')
+    
+    return redirect(reverse('ticket:scenic_admin_announcements'))
+
+
+# 批量删除公告视图
+@scenic_admin_required
+def scenic_admin_batch_delete_announcements(request):
+    if request.method == 'POST':
+        # 获取选中的公告ID
+        announcement_ids = request.POST.getlist('announcement_ids')
+        
+        if not announcement_ids:
+            messages.error(request, '请选择要删除的公告')
+            return redirect(reverse('ticket:scenic_admin_announcements'))
+        
+        try:
+            # 删除选中的公告
+            News.objects.filter(id__in=announcement_ids, is_announcement=True).delete()
+            messages.success(request, f'成功删除 {len(announcement_ids)} 条公告')
+        except Exception as e:
+            messages.error(request, f'批量删除失败: {str(e)}')
+    
+    return redirect(reverse('ticket:scenic_admin_announcements'))
+
+
+# 资讯管理视图
+@scenic_admin_required
+def scenic_admin_news(request):
+    # 获取资讯列表（is_announcement=False）
+    news = News.objects.filter(is_announcement=False)
+    
+    # 构建上下文数据
+    context = {
+        'news': news
+    }
+    
+    return render(request, 'scenic_admin/news.html', context)
+
+
+# 新增资讯视图
+@scenic_admin_required
+def scenic_admin_add_news(request):
+    if request.method == 'POST':
+        # 获取表单数据
+        title = request.POST.get('title')
+        content = request.POST.get('content')
+        image = request.FILES.get('image')
+        
+        # 创建资讯
+        try:
+            news_item = News(
+                title=title,
+                content=content,
+                image=image,
+                is_announcement=False
+            )
+            news_item.save()
+            
+            messages.success(request, '新增资讯成功')
+            return redirect(reverse('ticket:scenic_admin_news'))
+        except Exception as e:
+            messages.error(request, f'新增资讯失败: {str(e)}')
+    
+    # GET请求，渲染新增资讯表单
+    return render(request, 'scenic_admin/add_news.html')
+
+
+# 编辑资讯视图
+@scenic_admin_required
+def scenic_admin_edit_news(request, news_id):
+    # 获取要编辑的资讯
+    try:
+        news_item = News.objects.get(id=news_id, is_announcement=False)
+    except News.DoesNotExist:
+        messages.error(request, '资讯不存在或无权限访问')
+        return redirect(reverse('ticket:scenic_admin_news'))
+    
+    if request.method == 'POST':
+        # 获取表单数据
+        title = request.POST.get('title')
+        content = request.POST.get('content')
+        image = request.FILES.get('image')
+        
+        # 更新资讯
+        try:
+            news_item.title = title
+            news_item.content = content
+            if image:
+                news_item.image = image
+            news_item.save()
+            
+            messages.success(request, '编辑资讯成功')
+            return redirect(reverse('ticket:scenic_admin_news'))
+        except Exception as e:
+            messages.error(request, f'编辑资讯失败: {str(e)}')
+    
+    # GET请求，渲染编辑资讯表单
+    context = {
+        'news_item': news_item
+    }
+    return render(request, 'scenic_admin/edit_news.html', context)
+
+
+# 删除资讯视图
+@scenic_admin_required
+def scenic_admin_delete_news(request, news_id):
+    # 获取要删除的资讯
+    try:
+        news_item = News.objects.get(id=news_id, is_announcement=False)
+        news_item.delete()
+        messages.success(request, '删除资讯成功')
+    except News.DoesNotExist:
+        messages.error(request, '资讯不存在或无权限访问')
+    except Exception as e:
+        messages.error(request, f'删除资讯失败: {str(e)}')
+    
+    return redirect(reverse('ticket:scenic_admin_news'))
+
+
+# 批量删除资讯视图
+@scenic_admin_required
+def scenic_admin_batch_delete_news(request):
+    if request.method == 'POST':
+        # 获取选中的资讯ID
+        news_ids = request.POST.getlist('news_ids')
+        
+        if not news_ids:
+            messages.error(request, '请选择要删除的资讯')
+            return redirect(reverse('ticket:scenic_admin_news'))
+        
+        try:
+            # 删除选中的资讯
+            News.objects.filter(id__in=news_ids, is_announcement=False).delete()
+            messages.success(request, f'成功删除 {len(news_ids)} 条资讯')
+        except Exception as e:
+            messages.error(request, f'批量删除失败: {str(e)}')
+    
+    return redirect(reverse('ticket:scenic_admin_news'))
 
 
 # 平台管理员后台视图函数，需要登录且角色为平台管理员才能访问
@@ -692,6 +1289,109 @@ def admin_edit_user(request, user_id):
     return render(request, 'admin/edit_user.html', {'user': user})
 
 
+# 景点分类管理视图
+@admin_required
+def admin_category_list(request):
+    # 获取请求参数中的搜索关键词
+    search_keyword = request.GET.get('search', '')
+
+    # 基础查询集
+    categories = Category.objects.all()
+
+    # 根据搜索关键词筛选分类
+    if search_keyword:
+        categories = categories.filter(
+            models.Q(name__icontains=search_keyword) |
+            models.Q(description__icontains=search_keyword)
+        )
+
+    # 构建上下文数据
+    context = {
+        'categories': categories,
+        'search_keyword': search_keyword
+    }
+
+    return render(request, 'admin/category_list.html', context)
+
+
+# 添加景点分类视图
+@admin_required
+def admin_add_category(request):
+    if request.method == 'POST':
+        # 获取表单数据
+        name = request.POST.get('name')
+        description = request.POST.get('description')
+
+        # 表单验证
+        if not name:
+            messages.error(request, '分类名称不能为空')
+            return render(request, 'admin/add_category.html')
+
+        try:
+            # 创建分类
+            Category.objects.create(
+                name=name,
+                description=description
+            )
+            messages.success(request, '景点分类添加成功')
+            return redirect(reverse('ticket:admin_category_list'))
+        except Exception as e:
+            messages.error(request, f'添加分类失败: {str(e)}')
+
+    return render(request, 'admin/add_category.html')
+
+
+# 编辑景点分类视图
+@admin_required
+def admin_edit_category(request, category_id):
+    try:
+        # 获取要编辑的分类
+        category = Category.objects.get(id=category_id)
+    except Category.DoesNotExist:
+        messages.error(request, '分类不存在')
+        return redirect(reverse('ticket:admin_category_list'))
+
+    if request.method == 'POST':
+        # 获取表单数据
+        name = request.POST.get('name')
+        description = request.POST.get('description')
+
+        # 表单验证
+        if not name:
+            messages.error(request, '分类名称不能为空')
+            return render(request, 'admin/edit_category.html', {'category': category})
+
+        try:
+            # 更新分类
+            category.name = name
+            category.description = description
+            category.save()
+            messages.success(request, '景点分类更新成功')
+            return redirect(reverse('ticket:admin_category_list'))
+        except Exception as e:
+            messages.error(request, f'更新分类失败: {str(e)}')
+
+    # GET请求，渲染编辑表单
+    return render(request, 'admin/edit_category.html', {'category': category})
+
+
+# 删除景点分类视图
+@admin_required
+def admin_delete_category(request, category_id):
+    if request.method == 'POST':
+        try:
+            # 获取要删除的分类
+            category = Category.objects.get(id=category_id)
+            category.delete()
+            messages.success(request, '景点分类删除成功')
+        except Category.DoesNotExist:
+            messages.error(request, '分类不存在')
+        except Exception as e:
+            messages.error(request, f'删除分类失败: {str(e)}')
+
+    return redirect(reverse('ticket:admin_category_list'))
+
+
 # 景点管理视图
 @admin_required
 def admin_scenic_list(request):
@@ -717,8 +1417,8 @@ def admin_scenic_list(request):
     # 获取所有地区（用于筛选）
     regions = ScenicSpot.objects.values_list('region', flat=True).distinct()
 
-    # 景点分类选项
-    categories = ScenicSpot.CATEGORY_CHOICES
+    # 景点分类选项：从Category模型获取所有分类
+    categories = Category.objects.all()
 
     # 构建上下文数据
     context = {
@@ -732,6 +1432,135 @@ def admin_scenic_list(request):
     }
 
     return render(request, 'admin/scenic_list.html', context)
+
+
+# 地区分类管理视图
+@admin_required
+def admin_region_list(request):
+    # 获取请求参数中的搜索关键词
+    search_keyword = request.GET.get('search', '')
+
+    # 基础查询集
+    regions = Region.objects.all()
+
+    # 根据搜索关键词筛选地区
+    if search_keyword:
+        regions = regions.filter(name__icontains=search_keyword)
+
+    # 构建上下文数据
+    context = {
+        'regions': regions,
+        'search_keyword': search_keyword
+    }
+
+    return render(request, 'admin/region_list.html', context)
+
+
+# 添加地区分类视图
+@admin_required
+def admin_add_region(request):
+    if request.method == 'POST':
+        # 获取表单数据
+        name = request.POST.get('name')
+        parent_id = request.POST.get('parent')
+        level = request.POST.get('level')
+
+        # 表单验证
+        if not name or not level:
+            messages.error(request, '地区名称和级别不能为空')
+            # 获取所有地区，用于表单中的父地区选择
+            all_regions = Region.objects.all()
+            return render(request, 'admin/add_region.html', {'regions': all_regions})
+
+        try:
+            # 获取父地区
+            parent = None
+            if parent_id:
+                parent = Region.objects.get(id=parent_id)
+
+            # 创建地区
+            Region.objects.create(
+                name=name,
+                parent=parent,
+                level=level
+            )
+            messages.success(request, '地区添加成功')
+            return redirect(reverse('ticket:admin_region_list'))
+        except Exception as e:
+            messages.error(request, f'添加地区失败: {str(e)}')
+            # 获取所有地区，用于表单中的父地区选择
+            all_regions = Region.objects.all()
+            return render(request, 'admin/add_region.html', {'regions': all_regions})
+
+    # GET请求，渲染添加表单
+    # 获取所有地区，用于表单中的父地区选择
+    all_regions = Region.objects.all()
+    return render(request, 'admin/add_region.html', {'regions': all_regions})
+
+
+# 编辑地区分类视图
+@admin_required
+def admin_edit_region(request, region_id):
+    try:
+        # 获取要编辑的地区
+        region = Region.objects.get(id=region_id)
+    except Region.DoesNotExist:
+        messages.error(request, '地区不存在')
+        return redirect(reverse('ticket:admin_region_list'))
+
+    if request.method == 'POST':
+        # 获取表单数据
+        name = request.POST.get('name')
+        parent_id = request.POST.get('parent')
+        level = request.POST.get('level')
+
+        # 表单验证
+        if not name or not level:
+            messages.error(request, '地区名称和级别不能为空')
+            # 获取所有地区，用于表单中的父地区选择
+            all_regions = Region.objects.all()
+            return render(request, 'admin/edit_region.html', {'region': region, 'regions': all_regions})
+
+        try:
+            # 获取父地区
+            parent = None
+            if parent_id:
+                parent = Region.objects.get(id=parent_id)
+
+            # 更新地区信息
+            region.name = name
+            region.parent = parent
+            region.level = level
+            region.save()
+            messages.success(request, '地区更新成功')
+            return redirect(reverse('ticket:admin_region_list'))
+        except Exception as e:
+            messages.error(request, f'更新地区失败: {str(e)}')
+            # 获取所有地区，用于表单中的父地区选择
+            all_regions = Region.objects.all()
+            return render(request, 'admin/edit_region.html', {'region': region, 'regions': all_regions})
+
+    # GET请求，渲染编辑表单
+    # 获取所有地区，用于表单中的父地区选择
+    all_regions = Region.objects.all()
+    return render(request, 'admin/edit_region.html', {'region': region, 'regions': all_regions})
+
+
+# 删除地区分类视图
+@admin_required
+def admin_delete_region(request, region_id):
+    if request.method == 'POST':
+        try:
+            # 获取要删除的地区
+            region = Region.objects.get(id=region_id)
+            region.delete()
+            messages.success(request, '地区删除成功')
+        except Region.DoesNotExist:
+            messages.error(request, '地区不存在')
+        except Exception as e:
+            messages.error(request, f'删除地区失败: {str(e)}')
+
+    return redirect(reverse('ticket:admin_region_list'))
 
 
 # 删除景点视图
@@ -814,7 +1643,11 @@ def admin_add_scenic(request):
         # 表单验证
         if not name or not region or not category or not price or not opening_hours or not address or not description or not image:
             messages.error(request, '请填写所有必填字段')
-            return render(request, 'admin/add_scenic.html')
+            # 获取所有分类选项
+            categories = Category.objects.all()
+            # 获取所有地区选项
+            regions = Region.objects.all()
+            return render(request, 'admin/add_scenic.html', {'categories': categories, 'regions': regions})
 
         try:
             # 创建新景点
@@ -840,10 +1673,18 @@ def admin_add_scenic(request):
         except Exception as e:
             # 显示错误消息
             messages.error(request, f'添加景点失败: {str(e)}')
-            return render(request, 'admin/add_scenic.html')
+            # 获取所有分类选项
+            categories = Category.objects.all()
+            # 获取所有地区选项
+            regions = Region.objects.all()
+            return render(request, 'admin/add_scenic.html', {'categories': categories, 'regions': regions})
 
     # GET请求，渲染新增景点表单
-    return render(request, 'admin/add_scenic.html')
+    # 获取所有分类选项
+    categories = Category.objects.all()
+    # 获取所有地区选项
+    regions = Region.objects.all()
+    return render(request, 'admin/add_scenic.html', {'categories': categories, 'regions': regions})
 
 
 # 编辑景点视图
@@ -874,7 +1715,11 @@ def admin_edit_scenic(request, spot_id):
         # 表单验证
         if not name or not region or not category or not price or not opening_hours or not address or not description:
             messages.error(request, '请填写所有必填字段')
-            return render(request, 'admin/edit_scenic.html', {'scenic_spot': scenic_spot})
+            # 获取所有分类选项
+            categories = Category.objects.all()
+            # 获取所有地区选项
+            regions = Region.objects.all()
+            return render(request, 'admin/edit_scenic.html', {'scenic_spot': scenic_spot, 'categories': categories, 'regions': regions})
 
         try:
             # 更新景点信息
@@ -904,30 +1749,21 @@ def admin_edit_scenic(request, spot_id):
         except Exception as e:
             # 显示错误消息
             messages.error(request, f'更新景点失败: {str(e)}')
-            return render(request, 'admin/edit_scenic.html', {'scenic_spot': scenic_spot})
+            # 获取所有分类选项
+            categories = Category.objects.all()
+            # 获取所有地区选项
+            regions = Region.objects.all()
+            return render(request, 'admin/edit_scenic.html', {'scenic_spot': scenic_spot, 'categories': categories, 'regions': regions})
 
     # GET请求，渲染编辑景点表单，传递当前景点数据
-    return render(request, 'admin/edit_scenic.html', {'scenic_spot': scenic_spot})
+    # 获取所有分类选项
+    categories = Category.objects.all()
+    # 获取所有地区选项
+    regions = Region.objects.all()
+    return render(request, 'admin/edit_scenic.html', {'scenic_spot': scenic_spot, 'categories': categories, 'regions': regions})
 
 
-# 地区管理视图
-@admin_required
-def admin_region_list(request):
-    # 获取所有不重复的地区列表
-    regions = ScenicSpot.objects.values_list('region', flat=True).distinct().order_by('region')
 
-    # 统计每个地区的景点数量
-    region_counts = {}
-    for region in regions:
-        region_counts[region] = ScenicSpot.objects.filter(region=region).count()
-
-    # 构建上下文数据
-    context = {
-        'regions': regions,
-        'region_counts': region_counts
-    }
-
-    return render(request, 'admin/region_list.html', context)
 
 
 # 订单管理视图
@@ -1623,23 +2459,28 @@ def scenic_spots(request):
             address__icontains=search_keyword) | spots.filter(region__icontains=search_keyword)
 
     # 根据地区筛选
-    if region_filter:
-        spots = spots.filter(region=region_filter)
+    if region_filter and region_filter != '全部地区':
+        if region_filter == '全国':
+            # 全国筛选，不限制地区
+            pass
+        else:
+            spots = spots.filter(region=region_filter)
 
     # 根据分类筛选
-    if category_filter:
+    if category_filter and category_filter != '全部分类':
         spots = spots.filter(category=category_filter)
 
     # 获取所有地区（用于筛选）
-    regions = ScenicSpot.objects.values_list('region', flat=True).distinct()
+    regions = Region.objects.values_list('name', flat=True).distinct().order_by('name')
     # 获取所有分类（用于筛选）
-    categories = ScenicSpot.CATEGORY_CHOICES
+    # 从Category模型获取分类列表，确保分类名称完整
+    categories = Category.objects.values_list('name', flat=True).distinct().order_by('name')
 
     # 预处理景点数据，将tags转换为列表
     spots_with_tags = []
     for spot in spots:
         # 将tags字符串分割为列表
-        tags_list = [tag.strip() for tag in spot.tags.split(',')]
+        tags_list = [tag.strip() for tag in spot.tags.split(',') if tag.strip()]
         # 将处理后的tags列表添加到spot对象中
         spot.tags_list = tags_list
         spots_with_tags.append(spot)
@@ -1727,6 +2568,21 @@ def buy_ticket(request, spot_id):
     single_tickets = ticket_types.filter(type='single')
     package_tickets = ticket_types.filter(type='package')
     
+    # 检查会话中是否有购票选择
+    buy_ticket_selection = request.session.get('buy_ticket_selection')
+    selected_use_date = None
+    selected_ticket_type = None
+    selected_quantity = 1
+    
+    # 如果有保存的购票选择，获取并应用
+    if buy_ticket_selection:
+        selected_use_date = buy_ticket_selection.get('use_date')
+        selected_ticket_type = buy_ticket_selection.get('ticket_type_id')
+        selected_quantity = buy_ticket_selection.get('quantity', 1)
+        # 删除会话中的购票选择，避免重复使用
+        del request.session['buy_ticket_selection']
+        request.session.save()
+    
     # 处理表单提交
     if request.method == 'POST':
         # 获取表单数据
@@ -1796,9 +2652,16 @@ def buy_ticket(request, spot_id):
                 # 跳转到支付页面
                 return redirect(reverse('ticket:payment', kwargs={'order_id': order.id}))
             else:
-                # 用户未登录，跳转到登录页面
+                # 用户未登录，保存当前购票选择到会话，然后跳转到登录页面
                 messages.error(request, '请先登录')
-                return redirect(reverse('ticket:login'))
+                # 保存当前购票选择到会话
+                request.session['buy_ticket_selection'] = {
+                    'spot_id': spot.id,
+                    'use_date': use_date,
+                    'ticket_type_id': ticket_type_id,
+                    'quantity': quantity
+                }
+            return redirect(reverse('ticket:login'))
         elif action == 'add_to_cart':
             # 加入购物车：添加到用户购物车
             if request.user.is_authenticated:
@@ -1822,7 +2685,10 @@ def buy_ticket(request, spot_id):
         'spot': spot,
         'ticket_types': ticket_types,
         'single_tickets': single_tickets,
-        'package_tickets': package_tickets
+        'package_tickets': package_tickets,
+        'selected_use_date': selected_use_date,
+        'selected_ticket_type': selected_ticket_type,
+        'selected_quantity': selected_quantity
     })
 
 # 支付页面视图函数，处理订单支付请求
@@ -1967,6 +2833,163 @@ def cancel_order(request, order_id):
     
     # 重定向回订单中心页面
     return redirect(reverse('ticket:order_center'))
+
+
+# 申请退款视图函数，处理用户申请退款请求
+# @login_required装饰器：要求用户必须登录才能访问该视图
+@login_required
+def apply_refund(request, order_id):
+    # 判断请求方法是否为POST（表单提交）
+    if request.method == 'POST':
+        # 获取退款原因
+        refund_reason = request.POST.get('refund_reason')
+        
+        try:
+            # 获取订单信息，确保订单属于当前用户
+            order = Order.objects.get(id=order_id, user=request.user)
+            
+            # 只有已支付订单才能申请退款
+            if order.status == 1:
+                # 更新订单信息
+                order.refund_reason = refund_reason
+                order.refund_apply_time = timezone.now()
+                order.status = 5  # 设置为退款审核中，等待管理员审核
+                order.save()
+                
+                # 显示成功消息
+                messages.success(request, '退款申请已提交，正在等待管理员审核')
+            else:
+                # 订单状态不是已支付，无法申请退款
+                messages.error(request, '只有已支付的订单才能申请退款')
+        except Order.DoesNotExist:
+            # 订单不存在或不属于当前用户
+            messages.error(request, '订单不存在或您没有权限操作')
+        except Exception as e:
+            # 其他错误
+            messages.error(request, f'申请退款失败: {str(e)}')
+    
+    # 重定向到订单中心页面
+    return redirect(reverse('ticket:order_center'))
+
+
+# 景点管理员处理退款视图函数（审核通过）
+@scenic_admin_required
+def scenic_admin_refund_order(request, order_id):
+    # 判断请求方法是否为POST（表单提交）
+    if request.method == 'POST':
+        # 获取当前景点管理员
+        admin = request.user
+        
+        try:
+            # 获取该管理员管理的景点
+            scenic_spots = ScenicSpot.objects.filter(admin=admin)
+            scenic_ids = scenic_spots.values_list('id', flat=True)
+            
+            # 获取订单信息，确保订单属于该管理员管理的景点
+            order = Order.objects.get(id=order_id, scenic_spot__id__in=scenic_ids)
+            
+            if order.status == 1:
+                # 已支付订单：管理员主动发起退款，设置为退款审核中
+                order.status = 5  # 设置为退款审核中
+                order.refund_amount = order.total_price  # 全额退款
+                order.refund_apply_time = timezone.now()
+                order.save()
+                messages.success(request, '已发起退款流程')
+            elif order.status == 5:
+                # 退款审核中的订单：管理员审核通过
+                order.status = 4  # 设置为已退款
+                order.refund_audit_time = timezone.now()
+                order.save()
+                
+                # 恢复门票库存
+                if order.ticket_type:
+                    order.ticket_type.stock += order.quantity
+                    order.ticket_type.save()
+                
+                # 显示成功消息
+                messages.success(request, '退款申请已审核通过，订单已退款')
+            else:
+                # 订单状态不允许退款操作
+                messages.error(request, '该订单状态不允许退款操作')
+        except Order.DoesNotExist:
+            # 订单不存在或不属于该管理员管理的景点
+            messages.error(request, '订单不存在或您没有权限操作')
+        except Exception as e:
+            # 其他错误
+            messages.error(request, f'处理退款失败: {str(e)}')
+    
+    # 重定向到订单管理页面
+    return redirect(reverse('ticket:scenic_admin_orders'))
+
+
+# 景点管理员拒绝退款申请视图函数
+@scenic_admin_required
+def scenic_admin_refund_reject(request, order_id):
+    # 判断请求方法是否为POST（表单提交）
+    if request.method == 'POST':
+        # 获取当前景点管理员
+        admin = request.user
+        
+        try:
+            # 获取该管理员管理的景点
+            scenic_spots = ScenicSpot.objects.filter(admin=admin)
+            scenic_ids = scenic_spots.values_list('id', flat=True)
+            
+            # 获取订单信息，确保订单属于该管理员管理的景点
+            order = Order.objects.get(id=order_id, scenic_spot__id__in=scenic_ids)
+            
+            # 只有退款审核中的订单才能被拒绝
+            if order.status == 5:
+                # 更新订单信息，拒绝退款，恢复为已支付状态
+                order.status = 1  # 设置为已支付
+                order.refund_audit_time = timezone.now()
+                order.save()
+                
+                # 显示成功消息
+                messages.success(request, '退款申请已拒绝，订单已恢复为已支付状态')
+            else:
+                # 订单状态不是退款审核中，无法拒绝
+                messages.error(request, '只有退款审核中的订单才能被拒绝')
+        except Order.DoesNotExist:
+            # 订单不存在或不属于该管理员管理的景点
+            messages.error(request, '订单不存在或您没有权限操作')
+        except Exception as e:
+            # 其他错误
+            messages.error(request, f'拒绝退款失败: {str(e)}')
+    
+    # 重定向到订单管理页面
+    return redirect(reverse('ticket:scenic_admin_orders'))
+
+
+# 景点管理员查看订单详情视图函数
+@scenic_admin_required
+def scenic_admin_order_detail(request, order_id):
+    # 获取当前景点管理员
+    admin = request.user
+    
+    try:
+        # 获取该管理员管理的景点
+        scenic_spots = ScenicSpot.objects.filter(admin=admin)
+        scenic_ids = scenic_spots.values_list('id', flat=True)
+        
+        # 获取订单信息，确保订单属于该管理员管理的景点
+        order = Order.objects.get(id=order_id, scenic_spot__id__in=scenic_ids)
+        
+        # 构建上下文数据
+        context = {
+            'order': order
+        }
+        
+        # 渲染订单详情模板
+        return render(request, 'scenic_admin/order_detail.html', context)
+    except Order.DoesNotExist:
+        # 订单不存在或不属于该管理员管理的景点
+        messages.error(request, '订单不存在或您没有权限操作')
+        return redirect(reverse('ticket:scenic_admin_orders'))
+    except Exception as e:
+        # 其他错误
+        messages.error(request, f'查看订单详情失败: {str(e)}')
+        return redirect(reverse('ticket:scenic_admin_orders'))
 
 
 # 联系客服视图函数，处理用户联系客服请求

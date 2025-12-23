@@ -18,20 +18,21 @@
                         </div>
                         <div class="mb-3">
                             <label for="region" class="form-label">景点地区 *</label>
-                            <input type="text" class="form-control" id="region" name="region" required placeholder="请输入景点地区" value="北京">
+                            <select class="form-select" id="region" name="region" required>
+                                <option value="">请选择地区</option>
+                                {% for region in regions %}
+                                <option value="{{ region.name }}" {% if region.name == scenic_spot.region %}selected{% endif %}>{{ region.name }}</option>
+                                {% endfor %}
+                                <option value="其他" {% if scenic_spot.region == '其他' %}selected{% endif %}>其他</option>
+                            </select>
                         </div>
                         <div class="mb-3">
                             <label for="category" class="form-label">景点分类 *</label>
                             <select class="form-select" id="category" name="category" required>
                                 <option value="">请选择分类</option>
-                                <option value="natural" {% if 'natural' == scenic_spot.category %}selected{% endif %}>自然风光类</option>
-                                <option value="historical" {% if 'historical' == scenic_spot.category %}selected{% endif %}>历史遗迹类</option>
-                                <option value="folklore" {% if 'folklore' == scenic_spot.category %}selected{% endif %}>民俗文化类</option>
-                                <option value="modern" {% if 'modern' == scenic_spot.category %}selected{% endif %}>现代都市类</option>
-                                <option value="leisure" {% if 'leisure' == scenic_spot.category %}selected{% endif %}>休闲度假类</option>
-                                <option value="theme" {% if 'theme' == scenic_spot.category %}selected{% endif %}>主题乐园类</option>
-                                <option value="religious" {% if 'religious' == scenic_spot.category %}selected{% endif %}>宗教文化类</option>
-                                <option value="rural" {% if 'rural' == scenic_spot.category %}selected{% endif %}>农业乡村类</option>
+                                {% for category in categories %}
+                                <option value="{{ category.name }}" {% if category.name == scenic_spot.category %}selected{% endif %}>{{ category.name }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         <div class="mb-3">

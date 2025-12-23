@@ -39,16 +39,24 @@
                             <ul class="list-unstyled">
                                 <li class="mb-2">
                                     <a 
-                                        href="{% url 'ticket:scenic_spots' %}{% if search_keyword %}?search={{ search_keyword }}{% endif %}" 
+                                        href="{% url 'ticket:scenic_spots' %}?{% if search_keyword %}search={{ search_keyword }}&{% endif %}{% if category_filter %}category={{ category_filter }}{% endif %}" 
                                         class="text-decoration-none text-dark {% if not region_filter %}fw-bold{% endif %}"
                                     >
                                         全部地区
                                     </a>
                                 </li>
+                                <li class="mb-2">
+                                    <a 
+                                        href="{% url 'ticket:scenic_spots' %}?{% if search_keyword %}search={{ search_keyword }}&{% endif %}region=全国{% if category_filter %}&category={{ category_filter }}{% endif %}" 
+                                        class="text-decoration-none text-dark {% if region_filter == '全国' %}fw-bold{% endif %}"
+                                    >
+                                        全国
+                                    </a>
+                                </li>
                                 {% for region in regions %}
                                 <li class="mb-2">
                                     <a 
-                                        href="{% url 'ticket:scenic_spots' %}?{% if search_keyword %}search={{ search_keyword }}&{% endif %}region={{ region }}" 
+                                        href="{% url 'ticket:scenic_spots' %}?{% if search_keyword %}search={{ search_keyword }}&{% endif %}region={{ region }}{% if category_filter %}&category={{ category_filter }}{% endif %}" 
                                         class="text-decoration-none text-dark {% if region_filter == region %}fw-bold{% endif %}"
                                     >
                                         {{ region }}
@@ -64,19 +72,19 @@
                             <ul class="list-unstyled">
                                 <li class="mb-2">
                                     <a 
-                                        href="{% url 'ticket:scenic_spots' %}{% if search_keyword %}?search={{ search_keyword }}{% endif %}" 
+                                        href="{% url 'ticket:scenic_spots' %}?{% if search_keyword %}search={{ search_keyword }}&{% endif %}{% if region_filter %}region={{ region_filter }}{% endif %}" 
                                         class="text-decoration-none text-dark {% if not category_filter %}fw-bold{% endif %}"
                                     >
                                         全部分类
                                     </a>
                                 </li>
-                                {% for category_code, category_name in categories %}
+                                {% for category in categories %}
                                 <li class="mb-2">
                                     <a 
-                                        href="{% url 'ticket:scenic_spots' %}?{% if search_keyword %}search={{ search_keyword }}&{% endif %}{% if region_filter %}region={{ region_filter }}&{% endif %}category={{ category_code }}" 
-                                        class="text-decoration-none text-dark {% if category_filter == category_code %}fw-bold{% endif %}"
+                                        href="{% url 'ticket:scenic_spots' %}?{% if search_keyword %}search={{ search_keyword }}&{% endif %}{% if region_filter %}region={{ region_filter }}&{% endif %}category={{ category }}" 
+                                        class="text-decoration-none text-dark {% if category_filter == category %}fw-bold{% endif %}"
                                     >
-                                        {{ category_name }}
+                                        {{ category }}
                                     </a>
                                 </li>
                                 {% endfor %}

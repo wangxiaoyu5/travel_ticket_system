@@ -1,0 +1,63 @@
+{% extends 'admin/base.html' %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3>景点分类管理</h3>
+        </div>
+        <div class="card-body">
+            <!-- 操作栏 -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <a href="{% url 'ticket:admin_add_category' %}" class="btn btn-primary">添加分类</a>
+                </div>
+                <div class="col-md-6">
+                    <form method="get" action="{% url 'ticket:admin_category_list' %}" class="d-flex justify-content-end">
+                        <input type="text" class="form-control me-2" name="search" placeholder="搜索分类名称或描述" value="{{ search_keyword }}">
+                        <button type="submit" class="btn btn-outline-primary">搜索</button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- 分类列表 -->
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>分类名称</th>
+                            <th>分类描述</th>
+                            <th>创建时间</th>
+                            <th>更新时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category in categories %}
+                            <tr>
+                                <td>{{ category.id }}</td>
+                                <td>{{ category.name }}</td>
+                                <td>{{ category.description|default:'无描述' }}</td>
+                                <td>{{ category.created_at|date:"Y-m-d H:i:s" }}</td>
+                                <td>{{ category.updated_at|date:"Y-m-d H:i:s" }}</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{% url 'ticket:admin_edit_category' category_id=category.id %}" class="btn btn-primary btn-sm">编辑</a>
+                                        <form method="post" action="{% url 'ticket:admin_delete_category' category_id=category.id %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('确定要删除这个分类吗？')">删除</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center">暂无分类数据</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endblock %}

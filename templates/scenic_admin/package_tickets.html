@@ -7,43 +7,83 @@
         </div>
         <div class="card-body">
             <!-- 操作栏 -->
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="btn-group">
-                        <a href="{% url 'ticket:scenic_admin_add_package_ticket' %}" class="btn btn-success">新增套票</a>
-                        <button type="button" class="btn btn-success">批量上架</button>
-                        <button type="button" class="btn btn-warning">批量下架</button>
-                        <button type="button" class="btn btn-danger">批量删除</button>
+            <form method="post" action="{% url 'ticket:scenic_admin_batch_operate_package_tickets' %}">
+                {% csrf_token %}
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="btn-group">
+                            <a href="{% url 'ticket:scenic_admin_add_package_ticket' %}" class="btn btn-success">新增套票</a>
+                            <button type="submit" name="operation" value="activate" class="btn btn-success">批量上架</button>
+                            <button type="submit" name="operation" value="deactivate" class="btn btn-warning">批量下架</button>
+                            <button type="submit" name="operation" value="delete" class="btn btn-danger">批量删除</button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="请输入套票名称搜索">
+                            <button class="btn btn-primary" type="button">搜索</button>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <input type="text" class="form-control" placeholder="请输入套票名称搜索">
-                        <button class="btn btn-primary" type="button">搜索</button>
-                    </div>
+                
+                <!-- 套票列表 -->
+                <div class="table-responsive">
+                    <table class="table table-striped w-100">
+                        <thead>
+                            <tr>
+                                <th scope="col"><input type="checkbox" id="select-all"></th>
+                                <th scope="col">序号</th>
+                                <th scope="col">套票名称</th>
+                                <th scope="col">所属景点</th>
+                                <th scope="col">套票价格</th>
+                                <th scope="col">库存</th>
+                                <th scope="col">状态</th>
+                                <th scope="col">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if package_tickets %}
+                                {% for ticket in package_tickets %}
+                                    <tr>
+                                        <td><input type="checkbox" name="ticket_ids" value="{{ ticket.id }}"></td>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ ticket.name }}</td>
+                                        <td>{{ ticket.scenic_spot.name }}</td>
+                                        <td>¥{{ ticket.price|floatformat:2 }}</td>
+                                        <td>{{ ticket.stock }}</td>
+                                        <td>
+                                            {% if ticket.is_active %}
+                                                <span class="badge bg-success">已上架</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">已下架</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <!-- 这里可以添加编辑等操作按钮 -->
+                                            <button type="button" class="btn btn-sm btn-primary">编辑</button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="8" class="text-center">暂无套票数据</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
                 </div>
-            </div>
-            
-            <!-- 套票列表 -->
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th scope="col">序号</th>
-                        <th scope="col">套票名称</th>
-                        <th scope="col">包含景点</th>
-                        <th scope="col">套票价格</th>
-                        <th scope="col">库存</th>
-                        <th scope="col">状态</th>
-                        <th scope="col">操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- 暂无套票数据 -->
-                    <tr>
-                        <td colspan="7" class="text-center">暂无套票数据</td>
-                    </tr>
-                </tbody>
-            </table>
+                </div>
+            </form>
         </div>
     </div>
+    
+    <script>
+        // 全选/取消全选功能
+        document.getElementById('select-all').addEventListener('change', function() {
+            var checkboxes = document.querySelectorAll('input[name="ticket_ids"]');
+            checkboxes.forEach(function(checkbox) {
+                checkbox.checked = this.checked;
+            }.bind(this));
+        });
+    </script>
 {% endblock %}

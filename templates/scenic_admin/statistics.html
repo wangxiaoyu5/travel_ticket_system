@@ -12,7 +12,7 @@
                     <div class="card text-white bg-primary mb-3">
                         <div class="card-body">
                             <h5 class="card-title">总订单数</h5>
-                            <p class="card-text display-4">0</p>
+                            <p class="card-text display-4">{{ total_orders }}</p>
                         </div>
                     </div>
                 </div>
@@ -20,7 +20,7 @@
                     <div class="card text-white bg-success mb-3">
                         <div class="card-body">
                             <h5 class="card-title">总销售额</h5>
-                            <p class="card-text display-4">¥0</p>
+                            <p class="card-text display-4">¥{{ total_sales|floatformat:2 }}</p>
                         </div>
                     </div>
                 </div>
@@ -28,7 +28,7 @@
                     <div class="card text-white bg-warning mb-3">
                         <div class="card-body">
                             <h5 class="card-title">平均订单金额</h5>
-                            <p class="card-text display-4">¥0</p>
+                            <p class="card-text display-4">¥{{ avg_order_amount|floatformat:2 }}</p>
                         </div>
                     </div>
                 </div>
@@ -36,7 +36,7 @@
                     <div class="card text-white bg-danger mb-3">
                         <div class="card-body">
                             <h5 class="card-title">总访问量</h5>
-                            <p class="card-text display-4">0</p>
+                            <p class="card-text display-4">{{ total_visits }}</p>
                         </div>
                     </div>
                 </div>
@@ -70,38 +70,64 @@
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // 初始化图表
+        // 从模板获取数据
+        const dateLabels = {{ date_labels|safe }};
+        const orderCounts = {{ order_counts|safe }};
+        const salesAmounts = {{ sales_amounts|safe }};
+        
+        // 初始化订单趋势图表
         const ctx1 = document.getElementById('orderChart').getContext('2d');
         new Chart(ctx1, {
             type: 'line',
             data: {
-                labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                labels: dateLabels,
                 datasets: [{
                     label: '订单数',
-                    data: [0, 0, 0, 0, 0, 0, 0],
+                    data: orderCounts,
                     borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
                     tension: 0.1
                 }]
             },
             options: {
-                responsive: true
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
             }
         });
         
+        // 初始化销售额趋势图表
         const ctx2 = document.getElementById('salesChart').getContext('2d');
         new Chart(ctx2, {
             type: 'line',
             data: {
-                labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                labels: dateLabels,
                 datasets: [{
                     label: '销售额',
-                    data: [0, 0, 0, 0, 0, 0, 0],
+                    data: salesAmounts,
                     borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
                     tension: 0.1
                 }]
             },
             options: {
-                responsive: true
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '¥' + value;
+                            }
+                        }
+                    }
+                }
             }
         });
     </script>

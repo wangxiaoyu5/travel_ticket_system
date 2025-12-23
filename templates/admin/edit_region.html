@@ -1,0 +1,36 @@
+{% extends 'admin/base.html' %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-header">
+            <h3>编辑地区</h3>
+        </div>
+        <div class="card-body">
+            <form method="post" action="{% url 'ticket:admin_edit_region' region_id=region.id %}">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="name" class="form-label">地区名称</label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ region.name }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="parent" class="form-label">父地区</label>
+                    <select class="form-select" id="parent" name="parent">
+                        <option value="" {% if not region.parent %}selected{% endif %}>无父地区</option>
+                        {% for r in regions %}
+                            <option value="{{ r.id }}" {% if region.parent and region.parent.id == r.id %}selected{% endif %}>{{ r.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="level" class="form-label">地区级别</label>
+                    <input type="number" class="form-control" id="level" name="level" value="{{ region.level }}" min="1" max="3" required>
+                    <div class="form-text">1-省，2-市，3-县</div>
+                </div>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">更新地区</button>
+                    <a href="{% url 'ticket:admin_region_list' %}" class="btn btn-secondary">取消</a>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}

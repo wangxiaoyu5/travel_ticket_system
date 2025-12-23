@@ -71,6 +71,27 @@
                                     if (!useDateInput.value) {
                                         useDateInput.value = today;
                                     }
+                                    
+                                    // 如果有保存的门票类型选择，自动选择它
+                                    {% if selected_ticket_type %}
+                                        const ticketId = {{ selected_ticket_type }};
+                                        const selectedTicket = document.querySelector(`input[name="ticket_type"][value="${ticketId}"]`);
+                                        if (selectedTicket) {
+                                            // 检查是单票还是套票
+                                            const ticketCard = selectedTicket.closest('.ticket-card');
+                                            const isSingleTicket = ticketCard.closest('#singleTicketOptions') !== null;
+                                            
+                                            // 如果是套票，先切换到套票选项
+                                            if (!isSingleTicket) {
+                                                switchTicketType('package');
+                                            }
+                                            
+                                            // 选择对应的门票
+                                            const ticketName = ticketCard.querySelector('.card-title').textContent.trim();
+                                            const ticketPrice = parseFloat(ticketCard.querySelector('.text-danger').textContent.replace('¥', ''));
+                                            selectTicket(ticketId, ticketName, ticketPrice);
+                                        }
+                                    {% endif %}
                                 });
                             </script>
                             
