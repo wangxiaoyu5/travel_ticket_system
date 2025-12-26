@@ -14,7 +14,7 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect, reverse
 
 # 导入自定义模型，用于数据库查询
-from .models import ScenicSpot, News, Carousel, User, Cart, Order, ScenicSpotComment, TicketType, BrowseHistory, Category, Region
+from .models import ScenicSpot, News, Carousel, User, Cart, Order, ScenicSpotComment, TicketType, BrowseHistory, Category, Region, Collection
 
 
 # 首页视图函数，处理网站首页的请求
@@ -42,6 +42,9 @@ def index(request):
 
 # 登录视图函数，处理用户登录请求
 def user_login(request):
+    # 获取next参数，用于登录后跳转回原页面
+    next_url = request.GET.get('next', '')
+    
     # 判断请求方法是否为POST（表单提交）
     if request.method == 'POST':
         # 从POST请求中获取邮箱
@@ -52,6 +55,8 @@ def user_login(request):
         role = request.POST.get('role')
         # 从POST请求中获取景点ID
         scenic_spot_id = request.POST.get('scenic_spot')
+        # 从POST请求中获取next参数
+        next_url = request.POST.get('next', '')
 
         try:
             # 根据邮箱查找用户
@@ -62,6 +67,10 @@ def user_login(request):
                 if str(user.role) == role:
                     # 使用Django的login函数登录用户，创建会话
                     login(request, user)
+                    
+                    # 优先检查是否有next参数，如果有则跳转到该页面
+                    if next_url:
+                        return redirect(next_url)
                     
                     # 检查会话中是否有购票选择，如果有则跳转到购票页面
                     buy_ticket_selection = request.session.get('buy_ticket_selection')
@@ -88,8 +97,8 @@ def user_login(request):
         except User.DoesNotExist:
             # 用户不存在
             messages.error(request, '邮箱或密码错误')
-    # 如果请求方法不是POST，或者验证失败，渲染login.html模板
-    return render(request, 'login.html')
+    # 如果请求方法不是POST，或者验证失败，渲染login.html模板，传递next参数
+    return render(request, 'login.html', {'next': next_url})
 
 
 # 退出登录视图函数，处理用户退出请求
@@ -2285,12 +2294,6 @@ def admin_delete_news(request, news_id):
     return redirect(redirect_url)
 
 
-# 系统设置视图
-@admin_required
-def admin_system_settings(request):
-    return render(request, 'admin/system_settings.html')
-
-
 # 密码管理视图
 @admin_required
 def admin_password_change(request):
@@ -2441,6 +2444,47 @@ def personal_center(request):
     return render(request, 'personal_center.html')
 
 
+# 修改密码视图函数，需要登录才能访问
+@login_required
+def change_password(request):
+    # 判断请求方法是否为POST（表单提交）
+    if request.method == 'POST':
+        # 获取表单数据
+        old_password = request.POST.get('old_password')
+        new_password1 = request.POST.get('new_password1')
+        new_password2 = request.POST.get('new_password2')
+
+        # 获取当前登录用户
+        user = request.user
+
+        # 验证原密码
+        if not user.check_password(old_password):
+            # 显示错误消息
+            messages.error(request, '原密码错误')
+            # 重定向到个人中心页面
+            return redirect(reverse('ticket:personal_center'))
+
+        # 验证新密码
+        if new_password1 != new_password2:
+            # 显示错误消息
+            messages.error(request, '两次输入的新密码不一致')
+            # 重定向到个人中心页面
+            return redirect(reverse('ticket:personal_center'))
+
+        # 更新密码
+        user.set_password(new_password1)
+        # 保存用户信息
+        user.save()
+
+        # 显示成功消息
+        messages.success(request, '密码修改成功')
+        # 重定向到个人中心页面
+        return redirect(reverse('ticket:personal_center'))
+
+    # 如果请求方法不是POST，重定向到个人中心页面
+    return redirect(reverse('ticket:personal_center'))
+
+
 # 景点信息列表视图
 def scenic_spots(request):
     # 获取搜索关键词
@@ -2559,6 +2603,7 @@ def news_detail(request, news_id):
 
 # 购票页面视图函数，处理景点购票请求
 # spot_id: 景点ID，从URL中获取
+@login_required
 def buy_ticket(request, spot_id):
     # 根据景点ID从数据库中获取景点信息
     spot = ScenicSpot.objects.get(id=spot_id)
@@ -2665,16 +2710,21 @@ def buy_ticket(request, spot_id):
         elif action == 'add_to_cart':
             # 加入购物车：添加到用户购物车
             if request.user.is_authenticated:
-                # 创建购物车记录
-                Cart.objects.create(
+                # 检查是否已存在相同的购物车项
+                cart_item, created = Cart.objects.get_or_create(
                     user=request.user,
                     scenic_spot=spot,
                     ticket_type=ticket_type,
                     use_date=use_date,
-                    quantity=quantity
+                    defaults={'quantity': quantity}
                 )
-                messages.success(request, '已成功加入购物车')
-                return redirect(reverse('ticket:cart'))
+                
+                # 如果已存在，更新数量
+                if not created:
+                    cart_item.quantity += quantity
+                    cart_item.save()
+                
+                return redirect(reverse('ticket:scenic_spots'))
             else:
                 # 用户未登录，跳转到登录页面
                 messages.error(request, '请先登录')
@@ -2691,27 +2741,39 @@ def buy_ticket(request, spot_id):
         'selected_quantity': selected_quantity
     })
 
+# 天气页面视图函数，显示门票使用日期的天气情况
+# order_id: 订单ID，从URL中获取
+def weather_check(request, order_id):
+    # 根据订单ID从数据库中获取订单信息
+    order = Order.objects.get(id=order_id)
+    
+    # 模拟天气数据（实际项目中可以接入天气API）
+    weather_data = {
+        'date': order.use_date,
+        'temperature': '15-25°C',
+        'weather': '晴',
+        'wind': '微风',
+        'humidity': '45%',
+        'advice': '天气适宜出行，建议穿着轻便衣物'
+    }
+    
+    # 渲染weather_check.html模板，将订单和天气数据传递给模板
+    return render(request, 'weather_check.html', {
+        'order': order,
+        'weather_data': weather_data
+    })
+
 # 支付页面视图函数，处理订单支付请求
 # order_id: 订单ID，从URL中获取
 def payment(request, order_id):
     # 根据订单ID从数据库中获取订单信息
     order = Order.objects.get(id=order_id)
     
-    # 处理支付提交
-    if request.method == 'POST':
-        # 模拟支付成功
-        order.status = 1  # 设置订单状态为已支付
-        order.save()
-        
-        # 显示支付成功消息
-        messages.success(request, '支付成功！')
-        
-        # 跳转到订单中心
-        return redirect(reverse('ticket:order_center'))
-    
-    # 渲染payment.html模板，将订单数据传递给模板
-    return render(request, 'payment.html', {
-        'order': order
+    # 渲染通用支付页面，将订单数据传递给模板
+    return render(request, 'general_payment.html', {
+        'orders': [order],
+        'total_price': order.total_price,
+        'from_cart': False
     })
 
 
@@ -2732,25 +2794,50 @@ def cart(request):
         # 获取用户选择的购物车项目ID
         selected_item_ids = request.POST.getlist('selected_items')
         
+        print(f"=== 购物车视图调试信息 ===")
+        print(f"请求方法: {request.method}")
+        print(f"选中的购物车项ID: {selected_item_ids}")
+        print(f"选中的购物车项数量: {len(selected_item_ids)}")
+        
         # 检查是否选择了商品
         if not selected_item_ids:
             messages.error(request, '请选择要购买的商品')
+            print(f"错误提示: 请选择要购买的商品")
             return redirect(reverse('ticket:cart'))
         
         # 遍历选中的购物车项目，创建订单
         orders = []
-        for item_id in selected_item_ids:
+        deleted_ids = []
+        
+        # 去重处理，避免重复处理同一个购物车项
+        unique_item_ids = list(set(selected_item_ids))
+        print(f"去重后的购物车项ID: {unique_item_ids}")
+        
+        for item_id in unique_item_ids:
             try:
-                # 获取购物车项目
-                cart_item = Cart.objects.get(id=item_id, user=request.user)
+                # 检查ID是否已被处理过
+                if item_id in deleted_ids:
+                    print(f"跳过已处理的购物车项ID: {item_id}")
+                    continue
+                    
+                # 获取购物车项目，使用filter避免DoesNotExist异常
+                cart_items = Cart.objects.filter(id=item_id, user=request.user)
+                if not cart_items.exists():
+                    print(f"购物车项不存在，ID: {item_id}")
+                    continue
+                    
+                cart_item = cart_items.first()
+                print(f"获取到购物车项: {cart_item.id}, 景点: {cart_item.scenic_spot.name}")
                 
                 # 生成订单号
                 import datetime
                 import uuid
                 order_number = f"ORD{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}{uuid.uuid4().hex[:6].upper()}"
+                print(f"生成订单号: {order_number}")
                 
                 # 计算订单总价
                 total_price = cart_item.ticket_type.price * cart_item.quantity
+                print(f"计算订单总价: {total_price}")
                 
                 # 创建订单
                 order = Order.objects.create(
@@ -2762,25 +2849,42 @@ def cart(request):
                     total_price=total_price,
                     order_number=order_number
                 )
+                print(f"创建订单成功: {order.id}")
                 
                 orders.append(order)
                 
                 # 从购物车中删除已购买的项目
                 cart_item.delete()
-            except Cart.DoesNotExist:
-                messages.error(request, '购物车项目不存在或已被删除')
+                print(f"从购物车中删除项目: {item_id}")
+                
+                # 记录已删除的ID
+                deleted_ids.append(item_id)
+            except Exception as e:
+                # 捕获所有异常，避免处理一个商品失败影响其他商品
+                print(f"处理购物车项时发生错误，ID: {item_id}, 错误: {str(e)}")
+                # 只在控制台打印错误，不向用户显示，避免影响用户体验
                 continue
         
+        print(f"成功创建订单数量: {len(orders)}")
+        
         if orders:
+            # 提取订单ID列表
+            order_ids = [order.id for order in orders]
+            print(f"订单ID列表: {order_ids}")
+            
             # 如果只有一个订单，直接跳转到支付页面
             if len(orders) == 1:
-                return redirect(reverse('ticket:payment', kwargs={'order_id': orders[0].id}))
+                payment_url = reverse('ticket:payment', kwargs={'order_id': orders[0].id})
+                print(f"单个订单，跳转到支付页面: {payment_url}")
+                return redirect(payment_url)
             else:
-                # 多个订单，跳转到订单中心
-                messages.success(request, f'已成功创建 {len(orders)} 个订单')
-                return redirect(reverse('ticket:order_center'))
+                # 多个订单，将订单ID存储到会话中，然后跳转到批量支付页面
+                request.session['batch_order_ids'] = order_ids
+                print(f"多个订单，跳转到批量支付页面")
+                return redirect(reverse('ticket:batch_payment'))
         else:
             messages.error(request, '没有成功创建订单，请重新尝试')
+            print(f"错误: 没有成功创建订单，请重新尝试")
             return redirect(reverse('ticket:cart'))
 
     # 渲染cart.html模板，将购物车数据传递给模板
@@ -2796,6 +2900,159 @@ def order_center(request):
 
     # 渲染order_center.html模板，将订单数据传递给模板
     return render(request, 'order_center.html', {'orders': orders})
+
+# 删除购物车项视图函数
+# @login_required装饰器：要求用户必须登录才能访问该视图
+@login_required
+def delete_cart_item(request, cart_id):
+    # 判断请求方法是否为POST
+    if request.method == 'POST':
+        try:
+            # 获取购物车项，确保属于当前用户
+            cart_item = Cart.objects.get(id=cart_id, user=request.user)
+            # 删除购物车项
+            cart_item.delete()
+            # 跳转到购物车页面
+            return redirect(reverse('ticket:cart'))
+        except Cart.DoesNotExist:
+            # 购物车项不存在，显示错误信息
+            messages.error(request, '购物车项不存在或已被删除')
+            return redirect(reverse('ticket:cart'))
+    
+    # 如果不是POST请求，重定向到购物车页面
+    return redirect(reverse('ticket:cart'))
+
+# 移入收藏视图函数
+# @login_required装饰器：要求用户必须登录才能访问该视图
+@login_required
+def add_to_collection(request, cart_id):
+    # 判断请求方法是否为POST
+    if request.method == 'POST':
+        try:
+            # 获取购物车项，确保属于当前用户
+            cart_item = Cart.objects.get(id=cart_id, user=request.user)
+            
+            # 创建或获取收藏记录
+            collection, created = Collection.objects.get_or_create(
+                user=request.user,
+                scenic_spot=cart_item.scenic_spot
+            )
+            
+            # 如果是新创建的收藏，显示成功信息
+            if created:
+                messages.success(request, '已成功加入收藏')
+            else:
+                messages.info(request, '该景点已在收藏列表中')
+            
+            # 跳转到购物车页面
+            return redirect(reverse('ticket:cart'))
+        except Cart.DoesNotExist:
+            # 购物车项不存在，显示错误信息
+            messages.error(request, '购物车项不存在或已被删除')
+            return redirect(reverse('ticket:cart'))
+    
+    # 如果不是POST请求，重定向到购物车页面
+    return redirect(reverse('ticket:cart'))
+
+# 批量支付视图函数，显示所有选中的订单并计算总价格
+# @login_required装饰器：要求用户必须登录才能访问该视图
+@login_required
+def batch_payment(request):
+    # 获取订单ID列表（从会话或请求参数中获取）
+    order_ids = request.session.pop('batch_order_ids', [])
+    print(f"=== 批量支付页面调试信息 ===")
+    print(f"请求方法: {request.method}")
+    print(f"订单ID列表: {order_ids}")
+    
+    # 检查是否有订单ID
+    if not order_ids:
+        messages.error(request, '请选择要支付的订单')
+        return redirect(reverse('ticket:cart'))
+    
+    # 获取订单信息
+    orders = Order.objects.filter(id__in=order_ids, user=request.user)
+    print(f"获取到订单数量: {orders.count()}")
+    
+    # 计算总价格
+    total_price = sum(order.total_price for order in orders)
+    print(f"总价格: {total_price}")
+    
+    # 渲染通用支付页面
+    return render(request, 'general_payment.html', {
+        'orders': orders,
+        'total_price': total_price,
+        'from_cart': True
+    })
+
+# 确认支付视图函数，处理实际的支付逻辑
+# @login_required装饰器：要求用户必须登录才能访问该视图
+@login_required
+def confirm_payment(request):
+    # 判断请求方法是否为POST（表单提交）
+    if request.method == 'POST':
+        # 获取选中的订单ID列表
+        order_ids = request.POST.getlist('order_ids')
+        print(f"=== 确认支付调试信息 ===")
+        print(f"请求方法: {request.method}")
+        print(f"选中的订单ID: {order_ids}")
+        print(f"选中的订单数量: {len(order_ids)}")
+        
+        # 检查是否选择了订单
+        if not order_ids:
+            messages.error(request, '请选择要支付的订单')
+            return redirect(reverse('ticket:cart'))
+        
+        # 获取支付方式
+        payment_method = request.POST.get('payment_method', 'alipay')
+        print(f"支付方式: {payment_method}")
+        
+        # 统计成功和失败的订单数量
+        success_count = 0
+        failed_count = 0
+        
+        # 遍历处理每个订单
+        for order_id in order_ids:
+            try:
+                # 获取订单信息，确保订单属于当前用户
+                order = Order.objects.get(id=order_id, user=request.user)
+                print(f"获取到订单: {order.id}, 状态: {order.status}")
+                
+                # 只有待支付订单才能支付
+                if order.status == 0:
+                    # 模拟支付成功
+                    order.status = 1  # 更新订单状态为已支付
+                    order.save()
+                    print(f"订单 {order.id} 支付成功")
+                    success_count += 1
+                else:
+                    print(f"订单 {order.id} 状态不允许支付，当前状态: {order.status}")
+                    failed_count += 1
+            except Order.DoesNotExist:
+                print(f"订单 {order_id} 不存在或已被删除")
+                failed_count += 1
+                continue
+        
+        # 显示结果消息
+        if success_count > 0:
+            messages.success(request, f'成功支付 {success_count} 个订单')
+        if failed_count > 0:
+            messages.error(request, f'有 {failed_count} 个订单支付失败')
+        
+        print(f"支付完成: 成功 {success_count} 个，失败 {failed_count} 个")
+        
+        # 如果有成功支付的订单，跳转到第一个订单的天气页面
+        if success_count > 0:
+            # 获取第一个成功支付的订单
+            first_order = Order.objects.filter(id__in=order_ids, user=request.user).first()
+            if first_order:
+                # 跳转到天气页面
+                return redirect(reverse('ticket:weather_check', kwargs={'order_id': first_order.id}))
+        
+        # 否则跳转到订单中心
+        return redirect(reverse('ticket:order_center'))
+    
+    # 如果不是POST请求，重定向到购物车
+    return redirect(reverse('ticket:cart'))
 
 
 # 取消订单视图函数，处理用户取消订单请求

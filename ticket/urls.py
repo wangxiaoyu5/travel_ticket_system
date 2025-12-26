@@ -24,6 +24,9 @@ urlpatterns = [
     # 个人中心URL：/personal_center/ 映射到views.personal_center视图函数，URL名称为'personal_center'
     path('personal_center/', views.personal_center, name='personal_center'),
     
+    # 修改密码URL：/change_password/ 映射到views.change_password视图函数，URL名称为'change_password'
+    path('change_password/', views.change_password, name='change_password'),
+    
     # 景点列表URL：/scenic_spots/ 映射到views.scenic_spots视图函数，URL名称为'scenic_spots'
     path('scenic_spots/', views.scenic_spots, name='scenic_spots'),
     
@@ -60,6 +63,21 @@ urlpatterns = [
     
     # 支付页面URL：/payment/[订单ID]/ 映射到views.payment视图函数
     path('payment/<int:order_id>/', views.payment, name='payment'),
+    
+    # 批量支付URL：/batch_payment/ 映射到views.batch_payment视图函数
+    path('batch_payment/', views.batch_payment, name='batch_payment'),
+    
+    # 确认支付URL：/confirm_payment/ 映射到views.confirm_payment视图函数
+    path('confirm_payment/', views.confirm_payment, name='confirm_payment'),
+    
+    # 删除购物车项URL：/cart/delete/<int:cart_id>/ 映射到views.delete_cart_item视图函数
+    path('cart/delete/<int:cart_id>/', views.delete_cart_item, name='delete_cart_item'),
+    
+    # 移入收藏URL：/cart/add_to_collection/<int:cart_id>/ 映射到views.add_to_collection视图函数
+    path('cart/add_to_collection/<int:cart_id>/', views.add_to_collection, name='add_to_collection'),
+    
+    # 天气检查页面URL：/weather_check/[订单ID]/ 映射到views.weather_check视图函数
+    path('weather_check/<int:order_id>/', views.weather_check, name='weather_check'),
 
     # 获取景点列表API：/api/scenic_spots/ 映射到views.get_scenic_spots_api视图函数
     path('api/scenic_spots/', views.get_scenic_spots_api, name='get_scenic_spots_api'),
@@ -166,8 +184,7 @@ urlpatterns = [
     path('admin/news/add/', views.admin_add_news, name='admin_add_news'),
     path('admin/news/edit/<int:news_id>/', views.admin_edit_news, name='admin_edit_news'),
     path('admin/news/delete/<int:news_id>/', views.admin_delete_news, name='admin_delete_news'),
-    # 系统设置
-    path('admin/system/settings/', views.admin_system_settings, name='admin_system_settings'),
+
     # 密码管理
     path('admin/password/change/', views.admin_password_change, name='admin_password_change'),
 ]

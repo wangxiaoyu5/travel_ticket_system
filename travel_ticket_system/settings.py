@@ -132,10 +132,10 @@ LOGIN_URL = '/login/'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',  # 使用MySQL数据库引擎
-        'NAME': 'travel_ticket_system',  # 数据库名
+        'NAME': 'travel_ticket_system',  # 数据库名称
         'USER': 'root',  # 数据库用户名
         'PASSWORD': 'root',  # 数据库密码
-        'HOST': '127.0.0.1',  # 数据库主机
+        'HOST': 'localhost',  # 数据库主机
         'PORT': '3306',  # 数据库端口
     }
 }

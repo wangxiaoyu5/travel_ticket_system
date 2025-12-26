@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+    <!-- 返回按钮 -->
+    <div class="container mt-4">
+        <a href="{% url 'ticket:payment' order.id %}" class="btn btn-outline-secondary mb-4">
+            <i class="bi bi-arrow-left"></i> 返回支付页面
+        </a>
+    </div>
+
+    <!-- 天气检查页面主体 -->
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow-lg">
+                    <div class="card-body">
+                        <!-- 页面标题 -->
+                        <h2 class="card-title text-center mb-5">
+                            <i class="bi bi-cloud-sun-fill text-primary me-2"></i>
+                            门票使用日期天气情况
+                        </h2>
+
+                        <!-- 订单基本信息 -->
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title">订单信息</h5>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>订单号：</strong>{{ order.order_number }}</p>
+                                        <p class="mb-1"><strong>景点：</strong>{{ order.scenic_spot.name }}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>使用日期：</strong>{{ order.use_date }}</p>
+                                        <p class="mb-1"><strong>数量：</strong>{{ order.quantity }}张</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 天气信息卡片 -->
+                        <div class="card mb-5 text-center">
+                            <div class="card-body">
+                                <h5 class="card-title mb-4">{{ weather_data.date }} 天气情况</h5>
+                                <div class="weather-icon mb-4">
+                                    {% if weather_data.weather == '晴' %}
+                                        <i class="bi bi-sun-fill" style="font-size: 4rem; color: #ffc107;"></i>
+                                    {% elif weather_data.weather == '雨' %}
+                                        <i class="bi bi-cloud-rain-fill" style="font-size: 4rem; color: #6c757d;"></i>
+                                    {% elif weather_data.weather == '阴' %}
+                                        <i class="bi bi-cloud-fill" style="font-size: 4rem; color: #adb5bd;"></i>
+                                    {% else %}
+                                        <i class="bi bi-cloud-sun-fill" style="font-size: 4rem; color: #ffc107;"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="weather-details">
+                                    <p class="fs-3 mb-2">{{ weather_data.weather }}</p>
+                                    <p class="fs-5 mb-1">{{ weather_data.temperature }}</p>
+                                    <p class="mb-1">{{ weather_data.wind }} | 湿度 {{ weather_data.humidity }}</p>
+                                    <p class="text-muted mt-3">{{ weather_data.advice }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 操作按钮 -->
+                        <div class="d-flex flex-column gap-3">
+                            <a href="{% url 'ticket:scenic_spots' %}" class="btn btn-primary btn-lg">
+                                <i class="bi bi-plus-circle-fill me-2"></i>
+                                继续购票
+                            </a>
+                            <a href="{% url 'ticket:order_center' %}" class="btn btn-outline-secondary btn-lg">
+                                <i class="bi bi-list-check me-2"></i>
+                                查看订单
+                            </a>
+                        </div>
+
+                        <!-- 自动跳转提示 -->
+                        <div class="text-center mt-5 text-muted">
+                            <p class="mb-1">
+                                <i class="bi bi-clock-history me-1"></i>
+                                5秒后将自动跳转到订单中心
+                            </p>
+                            <div class="progress" style="height: 5px;">
+                                <div class="progress-bar bg-primary" id="countdown-bar" style="width: 100%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自动跳转脚本 -->
+    <script>
+        // 5秒自动跳转到订单中心
+        setTimeout(function() {
+            window.location.href = "{% url 'ticket:order_center' %}";
+        }, 5000);
+
+        // 进度条动画
+        let progress = 100;
+        const interval = setInterval(function() {
+            progress -= 2;
+            document.getElementById('countdown-bar').style.width = progress + '%';
+            if (progress <= 0) {
+                clearInterval(interval);
+            }
+        }, 100);
+    </script>
+{% endblock %}

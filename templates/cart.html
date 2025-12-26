@@ -3,6 +3,18 @@
 {% block content %}
     <div class="container mt-5">
         <h2>我的购物车</h2>
+        
+        <!-- 消息提示 -->
+        {% if messages %}
+        <div class="mt-3">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
         <div class="card mt-4">
             <div class="card-body">
                 <form method="post">
@@ -41,15 +53,21 @@
                                         <td>¥{{ item.ticket_type.price }}</td>
                                         <td>¥{{ item.total_price|floatformat:2 }}</td>
                                         <td>
-                                            <div class="btn-group" role="group">
+                                            <div class="btn-group-vertical" role="group" style="gap: 5px;">
                                                 <!-- 移入收藏按钮 -->
-                                                <button type="button" class="btn btn-outline-primary btn-sm">
-                                                    <i class="bi bi-star"></i> 移入收藏
-                                                </button>
+                                                <form method="post" action="{% url 'ticket:add_to_collection' item.id %}" class="m-0">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-outline-primary btn-sm" title="移入收藏">
+                                                        <i class="bi bi-star"></i> 移入收藏
+                                                    </button>
+                                                </form>
                                                 <!-- 删除按钮 -->
-                                                <button type="button" class="btn btn-outline-danger btn-sm">
-                                                    <i class="bi bi-trash"></i> 删除
-                                                </button>
+                                                <form method="post" action="{% url 'ticket:delete_cart_item' item.id %}" class="m-0">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="删除" onclick="return confirm('确定要删除这个购物车项吗？')">
+                                                        <i class="bi bi-trash"></i> 删除
+                                                    </button>
+                                                </form>
                                             </div>
                                         </td>
                                     </tr>
@@ -120,5 +138,26 @@
         
         // 初始化时更新总价
         document.addEventListener('DOMContentLoaded', updateTotalPrice);
+        
+        // 优化表单提交，确保选中的商品ID唯一
+        document.querySelector('form').addEventListener('submit', function(e) {
+            // 获取所有选中的复选框
+            const checkedCheckboxes = document.querySelectorAll('.itemCheckbox:checked');
+            
+            // 如果没有选中任何商品，显示提示并阻止提交
+            if (checkedCheckboxes.length === 0) {
+                e.preventDefault();
+                alert('请选择要购买的商品');
+                return false;
+            }
+            
+            // 确保提交的商品ID唯一
+            const selectedIds = new Set();
+            checkedCheckboxes.forEach(checkbox => {
+                selectedIds.add(checkbox.value);
+            });
+            
+            console.log('选中的唯一商品ID:', Array.from(selectedIds));
+        });
     </script>
 {% endblock %}

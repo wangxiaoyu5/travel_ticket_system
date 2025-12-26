@@ -1,6 +1,74 @@
 {% extends 'base.html' %}
 
 {% block content %}
+    <style>
+        /* 订单中心标签页样式 - 使用更高优先级 */
+        ul.nav-tabs > li.nav-item > button.nav-link {
+            font-weight: 500 !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        /* 全部订单 */
+        ul.nav-tabs > li.nav-item > button.nav-link#all-tab {
+            color: #6c757d !important;
+        }
+        
+        /* 待支付 */
+        ul.nav-tabs > li.nav-item > button.nav-link#pending-tab {
+            color: #ffc107 !important;
+        }
+        
+        /* 待出行 */
+        ul.nav-tabs > li.nav-item > button.nav-link#upcoming-tab {
+            color: #0d6efd !important;
+        }
+        
+        /* 已完成 */
+        ul.nav-tabs > li.nav-item > button.nav-link#completed-tab {
+            color: #198754 !important;
+        }
+        
+        /* 已退款 */
+        ul.nav-tabs > li.nav-item > button.nav-link#refunded-tab {
+            color: #0dcaf0 !important;
+        }
+        
+        /* 已取消 */
+        ul.nav-tabs > li.nav-item > button.nav-link#cancelled-tab {
+            color: #dc3545 !important;
+        }
+        
+        /* 激活状态的标签 - 保持与标签本身颜色一致 */
+        ul.nav-tabs > li.nav-item > button.nav-link#all-tab.active {
+            color: #6c757d !important;
+            font-weight: 600 !important;
+        }
+        
+        ul.nav-tabs > li.nav-item > button.nav-link#pending-tab.active {
+            color: #ffc107 !important;
+            font-weight: 600 !important;
+        }
+        
+        ul.nav-tabs > li.nav-item > button.nav-link#upcoming-tab.active {
+            color: #0d6efd !important;
+            font-weight: 600 !important;
+        }
+        
+        ul.nav-tabs > li.nav-item > button.nav-link#completed-tab.active {
+            color: #198754 !important;
+            font-weight: 600 !important;
+        }
+        
+        ul.nav-tabs > li.nav-item > button.nav-link#refunded-tab.active {
+            color: #0dcaf0 !important;
+            font-weight: 600 !important;
+        }
+        
+        ul.nav-tabs > li.nav-item > button.nav-link#cancelled-tab.active {
+            color: #dc3545 !important;
+            font-weight: 600 !important;
+        }
+    </style>
     <div class="container mt-5">
         <h2>订单中心</h2>
         <ul class="nav nav-tabs mt-4" id="orderTabs" role="tablist">
