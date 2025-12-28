@@ -12,6 +12,8 @@ from django.utils import timezone
 # 导入JsonResponse，用于返回JSON响应
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, reverse
+# 导入分页模块
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 
 # 导入自定义模型，用于数据库查询
 from .models import ScenicSpot, News, Carousel, User, Cart, Order, ScenicSpotComment, TicketType, BrowseHistory, Category, Region, Collection
@@ -47,8 +49,8 @@ def user_login(request):
     
     # 判断请求方法是否为POST（表单提交）
     if request.method == 'POST':
-        # 从POST请求中获取邮箱
-        email = request.POST.get('email')
+        # 从POST请求中获取用户名
+        username = request.POST.get('username')
         # 从POST请求中获取密码
         password = request.POST.get('password')
         # 从POST请求中获取角色
@@ -59,8 +61,8 @@ def user_login(request):
         next_url = request.POST.get('next', '')
 
         try:
-            # 根据邮箱查找用户
-            user = User.objects.get(email=email)
+            # 根据用户名查找用户
+            user = User.objects.get(username=username)
             # 验证密码
             if user.check_password(password):
                 # 验证角色是否匹配
@@ -93,10 +95,10 @@ def user_login(request):
                     messages.error(request, '角色不匹配')
             else:
                 # 密码错误
-                messages.error(request, '邮箱或密码错误')
+                messages.error(request, '用户名或密码错误')
         except User.DoesNotExist:
             # 用户不存在
-            messages.error(request, '邮箱或密码错误')
+            messages.error(request, '用户名或密码错误')
     # 如果请求方法不是POST，或者验证失败，渲染login.html模板，传递next参数
     return render(request, 'login.html', {'next': next_url})
 
@@ -280,9 +282,12 @@ def scenic_admin_add_scenic_spot(request):
                 # 设置默认值，因为模板中没有这些字段
                 opening_hours='',
                 is_hot=False,
-                region='',
+                region=None,
                 tags=''
             )
+            
+            # 重新排序display_id
+            reorder_scenic_display_ids()
             
             # 显示成功消息
             messages.success(request, '景点添加成功')
@@ -330,6 +335,8 @@ def scenic_admin_batch_operate_scenic_spots(request):
                 elif operation.startswith('delete_single_'):
                     # 单个景点删除
                     scenic_spot.delete()
+                    # 重新排序display_id
+                    reorder_scenic_display_ids()
                     messages.success(request, '成功删除景点')
             else:
                 # 处理批量操作
@@ -353,6 +360,8 @@ def scenic_admin_batch_operate_scenic_spots(request):
                 elif operation == 'delete':
                     # 批量删除
                     scenic_spots.delete()
+                    # 重新排序display_id
+                    reorder_scenic_display_ids()
                     messages.success(request, f'成功删除 {len(spot_ids)} 个景点')
         except ScenicSpot.DoesNotExist:
             messages.error(request, '景点不存在或无权限访问')
@@ -1028,6 +1037,8 @@ def admin_index(request):
 def admin_user_list(request):
     # 获取请求参数中的角色筛选条件
     role_filter = request.GET.get('role', '')
+    # 获取当前页码，默认为1
+    page = request.GET.get('page', 1)
 
     # 基础查询集
     users = User.objects.all()
@@ -1042,9 +1053,18 @@ def admin_user_list(request):
     scenic_admin_count = User.objects.filter(role=1).count()
     platform_admin_count = User.objects.filter(role=2).count()
 
+    # 分页处理
+    paginator = Paginator(users, 10)  # 每页显示10个用户
+    try:
+        users_paginated = paginator.page(page)
+    except PageNotAnInteger:
+        users_paginated = paginator.page(1)
+    except EmptyPage:
+        users_paginated = paginator.page(paginator.num_pages)
+
     # 构建上下文数据
     context = {
-        'users': users,
+        'users': users_paginated,
         'total_users': total_users,
         'visitor_count': visitor_count,
         'scenic_admin_count': scenic_admin_count,
@@ -1406,6 +1426,8 @@ def admin_delete_category(request, category_id):
 def admin_scenic_list(request):
     # 获取请求参数中的搜索关键词
     search_keyword = request.GET.get('search', '')
+    # 获取当前页码，默认为1
+    page = request.GET.get('page', 1)
 
     # 基础查询集
     scenic_spots = ScenicSpot.objects.all()
@@ -1415,7 +1437,7 @@ def admin_scenic_list(request):
         scenic_spots = scenic_spots.filter(
             models.Q(name__icontains=search_keyword) |
             models.Q(address__icontains=search_keyword) |
-            models.Q(region__icontains=search_keyword)
+            models.Q(region__name__icontains=search_keyword)
         )
 
     # 统计不同状态的景点数量
@@ -1424,14 +1446,23 @@ def admin_scenic_list(request):
     recommended_spots = ScenicSpot.objects.filter(is_hot=True).count()  # 可以根据实际字段调整
 
     # 获取所有地区（用于筛选）
-    regions = ScenicSpot.objects.values_list('region', flat=True).distinct()
+    regions = Region.objects.all()
 
     # 景点分类选项：从Category模型获取所有分类
     categories = Category.objects.all()
 
+    # 分页处理
+    paginator = Paginator(scenic_spots, 10)  # 每页显示10个景点
+    try:
+        scenic_spots_paginated = paginator.page(page)
+    except PageNotAnInteger:
+        scenic_spots_paginated = paginator.page(1)
+    except EmptyPage:
+        scenic_spots_paginated = paginator.page(paginator.num_pages)
+
     # 构建上下文数据
     context = {
-        'scenic_spots': scenic_spots,
+        'scenic_spots': scenic_spots_paginated,
         'total_scenic_spots': total_scenic_spots,
         'hot_spots': hot_spots,
         'recommended_spots': recommended_spots,
@@ -1572,6 +1603,18 @@ def admin_delete_region(request, region_id):
     return redirect(reverse('ticket:admin_region_list'))
 
 
+# 重新排序景点显示ID的辅助函数
+def reorder_scenic_display_ids():
+    # 按id升序获取所有景点
+    scenic_spots = ScenicSpot.objects.all().order_by('id')
+    
+    # 重新分配display_id
+    for index, spot in enumerate(scenic_spots, start=1):
+        if spot.display_id != index:
+            spot.display_id = index
+            spot.save()
+
+
 # 删除景点视图
 @admin_required
 def admin_delete_scenic(request, spot_id):
@@ -1582,6 +1625,9 @@ def admin_delete_scenic(request, spot_id):
             
             # 删除景点
             scenic_spot.delete()
+            
+            # 重新排序display_id
+            reorder_scenic_display_ids()
             
             # 显示成功消息
             messages.success(request, '景点删除成功')
@@ -1614,6 +1660,10 @@ def admin_batch_delete_scenic(request):
             try:
                 # 删除选中的景点
                 deleted_count, _ = ScenicSpot.objects.filter(id__in=scenic_ids).delete()
+                
+                # 重新排序display_id
+                reorder_scenic_display_ids()
+                
                 # 显示成功消息
                 messages.success(request, f'成功删除 {deleted_count} 个景点')
             except Exception as e:
@@ -1662,7 +1712,7 @@ def admin_add_scenic(request):
             # 创建新景点
             scenic_spot = ScenicSpot.objects.create(
                 name=name,
-                region=region,
+                region_id=region,
                 category=category,
                 price=float(price),
                 total_tickets=int(total_tickets) if total_tickets else 0,
@@ -1673,6 +1723,9 @@ def admin_add_scenic(request):
                 description=description,
                 image=image
             )
+
+            # 重新排序display_id
+            reorder_scenic_display_ids()
 
             # 显示成功消息
             messages.success(request, '景点添加成功')
@@ -1733,7 +1786,7 @@ def admin_edit_scenic(request, spot_id):
         try:
             # 更新景点信息
             scenic_spot.name = name
-            scenic_spot.region = region
+            scenic_spot.region_id = region
             scenic_spot.category = category
             scenic_spot.price = float(price)
             scenic_spot.total_tickets = int(total_tickets) if total_tickets else 0
@@ -1782,6 +1835,8 @@ def admin_order_list(request):
     status_filter = request.GET.get('status', '')
     # 获取请求参数中的搜索关键词
     search_keyword = request.GET.get('search', '')
+    # 获取当前页码，默认为1
+    page = request.GET.get('page', 1)
 
     # 基础查询集：包含关联的用户和景点信息，使用select_related优化查询
     orders = Order.objects.select_related('user', 'scenic_spot', 'ticket_type')
@@ -1790,13 +1845,17 @@ def admin_order_list(request):
     if status_filter:
         orders = orders.filter(status=status_filter)
 
-    # 根据搜索关键词筛选：可搜索订单号、用户邮箱或景点名称
+    # 根据搜索关键词筛选：可搜索订单号、用户名、用户邮箱或景点名称
     if search_keyword:
         orders = orders.filter(
             models.Q(order_number__icontains=search_keyword) |
+            models.Q(user__username__icontains=search_keyword) |
             models.Q(user__email__icontains=search_keyword) |
             models.Q(scenic_spot__name__icontains=search_keyword)
         )
+
+    # 按创建时间倒序排序
+    orders = orders.order_by('-created_at')
 
     # 统计不同状态的订单数量
     total_orders = Order.objects.count()
@@ -1809,9 +1868,18 @@ def admin_order_list(request):
     # 订单状态选项
     status_choices = Order.STATUS_CHOICES
 
+    # 分页处理
+    paginator = Paginator(orders, 10)  # 每页显示10个订单
+    try:
+        orders_paginated = paginator.page(page)
+    except PageNotAnInteger:
+        orders_paginated = paginator.page(1)
+    except EmptyPage:
+        orders_paginated = paginator.page(paginator.num_pages)
+
     # 构建上下文数据
     context = {
-        'orders': orders,
+        'orders': orders_paginated,
         'total_orders': total_orders,
         'pending_orders': pending_orders,
         'paid_orders': paid_orders,
@@ -1871,9 +1939,11 @@ def admin_comment_list(request):
     replied_filter = request.GET.get('replied', '')
     # 获取请求参数中的搜索关键词
     search_keyword = request.GET.get('search', '')
+    # 获取当前页码，默认为1
+    page = request.GET.get('page', 1)
 
     # 基础查询集：包含关联的用户和景点信息，使用select_related优化查询
-    comments = ScenicSpotComment.objects.select_related('user', 'scenic_spot')
+    comments = ScenicSpotComment.objects.select_related('user', 'scenic_spot').order_by('-created_at')
 
     # 根据回复状态筛选
     if replied_filter == 'replied':
@@ -1893,9 +1963,18 @@ def admin_comment_list(request):
     replied_comments = ScenicSpotComment.objects.filter(is_replied=True).count()
     unreplied_comments = ScenicSpotComment.objects.filter(is_replied=False).count()
 
+    # 分页处理
+    paginator = Paginator(comments, 10)  # 每页显示10条留言
+    try:
+        comments_paginated = paginator.page(page)
+    except PageNotAnInteger:
+        comments_paginated = paginator.page(1)
+    except EmptyPage:
+        comments_paginated = paginator.page(paginator.num_pages)
+
     # 构建上下文数据
     context = {
-        'comments': comments,
+        'comments': comments_paginated,
         'total_comments': total_comments,
         'replied_comments': replied_comments,
         'unreplied_comments': unreplied_comments,
@@ -1951,6 +2030,8 @@ def admin_delete_comment(request, comment_id):
 def admin_announcement_list(request):
     # 获取请求参数中的搜索关键词
     search_keyword = request.GET.get('search', '')
+    # 获取当前页码，默认为1
+    page = request.GET.get('page', 1)
 
     # 基础查询集：只获取公告类型的资讯，按创建时间倒序排列
     announcements = News.objects.filter(is_announcement=True).order_by('-created_at')
@@ -1965,9 +2046,18 @@ def admin_announcement_list(request):
     # 统计公告数量
     total_announcements = News.objects.filter(is_announcement=True).count()
 
+    # 分页处理
+    paginator = Paginator(announcements, 10)  # 每页显示10条公告
+    try:
+        announcements_paginated = paginator.page(page)
+    except PageNotAnInteger:
+        announcements_paginated = paginator.page(1)
+    except EmptyPage:
+        announcements_paginated = paginator.page(paginator.num_pages)
+
     # 构建上下文数据
     context = {
-        'announcements': announcements,
+        'announcements': announcements_paginated,
         'total_announcements': total_announcements,
         'search_keyword': search_keyword
     }
@@ -2089,6 +2179,8 @@ def admin_delete_announcement(request, announcement_id):
 def admin_news_list(request):
     # 获取请求参数中的搜索关键词
     search_keyword = request.GET.get('search', '')
+    # 获取当前页码，默认为1
+    page = request.GET.get('page', 1)
 
     # 基础查询集：只获取非公告类型的资讯，按创建时间倒序排列
     news_list = News.objects.filter(is_announcement=False).order_by('-created_at')
@@ -2103,9 +2195,18 @@ def admin_news_list(request):
     # 统计资讯数量
     total_news = News.objects.filter(is_announcement=False).count()
 
+    # 分页处理
+    paginator = Paginator(news_list, 10)  # 每页显示10条资讯
+    try:
+        news_paginated = paginator.page(page)
+    except PageNotAnInteger:
+        news_paginated = paginator.page(1)
+    except EmptyPage:
+        news_paginated = paginator.page(paginator.num_pages)
+
     # 构建上下文数据
     context = {
-        'news_list': news_list,
+        'news_list': news_paginated,
         'total_news': total_news,
         'search_keyword': search_keyword
     }
@@ -2493,6 +2594,8 @@ def scenic_spots(request):
     region_filter = request.GET.get('region', '')
     # 获取分类筛选条件
     category_filter = request.GET.get('category', '')
+    # 获取当前页码，默认为1
+    page = request.GET.get('page', 1)
 
     # 基础查询集
     spots = ScenicSpot.objects.all()
@@ -2500,15 +2603,16 @@ def scenic_spots(request):
     # 根据搜索关键词筛选
     if search_keyword:
         spots = spots.filter(name__icontains=search_keyword) | spots.filter(
-            address__icontains=search_keyword) | spots.filter(region__icontains=search_keyword)
+            address__icontains=search_keyword) | spots.filter(region__name__icontains=search_keyword)
 
     # 根据地区筛选
     if region_filter and region_filter != '全部地区':
-        if region_filter == '全国':
-            # 全国筛选，不限制地区
-            pass
-        else:
-            spots = spots.filter(region=region_filter)
+        # 尝试将region_filter转换为整数ID，如果失败则按名称筛选
+        try:
+            region_id = int(region_filter)
+            spots = spots.filter(region_id=region_id)
+        except ValueError:
+            spots = spots.filter(region__name=region_filter)
 
     # 根据分类筛选
     if category_filter and category_filter != '全部分类':
@@ -2529,9 +2633,18 @@ def scenic_spots(request):
         spot.tags_list = tags_list
         spots_with_tags.append(spot)
 
+    # 分页处理
+    paginator = Paginator(spots_with_tags, 10)  # 每页显示10个景点
+    try:
+        spots_paginated = paginator.page(page)
+    except PageNotAnInteger:
+        spots_paginated = paginator.page(1)
+    except EmptyPage:
+        spots_paginated = paginator.page(paginator.num_pages)
+
     # 构建上下文
     context = {
-        'spots': spots_with_tags,
+        'spots': spots_paginated,
         'search_keyword': search_keyword,
         'region_filter': region_filter,
         'category_filter': category_filter,
@@ -2546,8 +2659,13 @@ def scenic_spots(request):
 # 景点详情视图函数，处理单个景点的详情页请求
 # spot_id: 景点ID，从URL中获取
 def scenic_spot_detail(request, spot_id):
-    # 根据景点ID从数据库中获取单个景点信息
-    spot = ScenicSpot.objects.get(id=spot_id)
+    # 根据景点ID从数据库中获取景点信息
+    try:
+        spot = ScenicSpot.objects.get(id=spot_id)
+    except ScenicSpot.DoesNotExist:
+        # 景点不存在时显示错误信息并重定向到首页
+        messages.error(request, '该景点不存在或已被删除')
+        return redirect(reverse('ticket:index'))
     # 将tags字符串分割为列表
     tags_list = [tag.strip() for tag in spot.tags.split(',')]
     # 获取该景点的所有留言，按创建时间倒序排列
@@ -2580,24 +2698,40 @@ def scenic_spot_detail(request, spot_id):
 def news_list(request):
     # 获取筛选参数，默认显示全部
     filter_type = request.GET.get('type', 'all')
+    # 获取当前页码，默认为1
+    page = request.GET.get('page', 1)
 
     # 根据筛选条件获取资讯公告，按创建时间倒序排列
     if filter_type == 'news':
-        news = News.objects.filter(is_announcement=False)
+        news = News.objects.filter(is_announcement=False).order_by('-created_at')
     elif filter_type == 'announcement':
-        news = News.objects.filter(is_announcement=True)
+        news = News.objects.filter(is_announcement=True).order_by('-created_at')
     else:
-        news = News.objects.all()
+        news = News.objects.all().order_by('-created_at')
+
+    # 分页处理
+    paginator = Paginator(news, 10)  # 每页显示10条资讯
+    try:
+        news_paginated = paginator.page(page)
+    except PageNotAnInteger:
+        news_paginated = paginator.page(1)
+    except EmptyPage:
+        news_paginated = paginator.page(paginator.num_pages)
 
     # 渲染news_list.html模板，将资讯公告数据和筛选类型传递给模板
-    return render(request, 'news_list.html', {'news': news, 'filter_type': filter_type})
+    return render(request, 'news_list.html', {'news': news_paginated, 'filter_type': filter_type})
 
 
 # 资讯公告详情视图函数，处理单个资讯公告的详情页请求
 # news_id: 资讯ID，从URL中获取
 def news_detail(request, news_id):
     # 根据资讯ID从数据库中获取单个资讯公告信息
-    news_item = News.objects.get(id=news_id)
+    try:
+        news_item = News.objects.get(id=news_id)
+    except News.DoesNotExist:
+        # 资讯不存在时显示错误信息并重定向到资讯列表页
+        messages.error(request, '该资讯不存在或已被删除')
+        return redirect(reverse('ticket:news_list'))
     # 渲染news_detail.html模板，将资讯详情数据传递给模板
     return render(request, 'news_detail.html', {'news': news_item})
 
@@ -2605,8 +2739,17 @@ def news_detail(request, news_id):
 # spot_id: 景点ID，从URL中获取
 @login_required
 def buy_ticket(request, spot_id):
+    # 导入日期处理模块
+    from datetime import date
+    # 获取当前日期
+    today = date.today()
     # 根据景点ID从数据库中获取景点信息
-    spot = ScenicSpot.objects.get(id=spot_id)
+    try:
+        spot = ScenicSpot.objects.get(id=spot_id)
+    except ScenicSpot.DoesNotExist:
+        # 景点不存在时显示错误信息并重定向到景点列表页
+        messages.error(request, '该景点不存在或已被删除')
+        return redirect(reverse('ticket:scenic_spots'))
     # 获取该景点的所有激活状态的门票类型
     ticket_types = TicketType.objects.filter(scenic_spot=spot, is_active=True)
     # 分类门票类型：单票和套票
@@ -2653,7 +2796,11 @@ def buy_ticket(request, spot_id):
         # 获取门票类型
         ticket_type = TicketType.objects.get(id=ticket_type_id)
         
-        # 检查库存
+        # 检查当天的库存是否充足
+        from datetime import datetime
+        use_date_obj = datetime.strptime(use_date, '%Y-%m-%d').date()
+        
+        # 检查库存（暂时使用总库存，后续优化为按日期库存）
         if ticket_type.stock < quantity:
             # 库存不足，显示错误信息
             messages.error(request, f'门票库存不足，当前库存仅剩 {ticket_type.stock} 张')
@@ -2664,7 +2811,8 @@ def buy_ticket(request, spot_id):
                 'single_tickets': single_tickets,
                 'package_tickets': package_tickets,
                 'selected_use_date': use_date,
-                'selected_quantity': quantity
+                'selected_quantity': quantity,
+                'today': today
             })
         
         # 计算总价
@@ -2690,7 +2838,7 @@ def buy_ticket(request, spot_id):
                     order_number=order_number
                 )
                 
-                # 减少库存
+                # 减少总库存
                 ticket_type.stock -= quantity
                 ticket_type.save()
                 
@@ -2738,24 +2886,42 @@ def buy_ticket(request, spot_id):
         'package_tickets': package_tickets,
         'selected_use_date': selected_use_date,
         'selected_ticket_type': selected_ticket_type,
-        'selected_quantity': selected_quantity
+        'selected_quantity': selected_quantity,
+        'today': today
     })
+
+from .weather_api import get_weather_by_region
 
 # 天气页面视图函数，显示门票使用日期的天气情况
 # order_id: 订单ID，从URL中获取
 def weather_check(request, order_id):
     # 根据订单ID从数据库中获取订单信息
-    order = Order.objects.get(id=order_id)
+    try:
+        order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        # 订单不存在时显示错误信息并重定向到订单中心
+        messages.error(request, '该订单不存在或已被删除')
+        return redirect(reverse('ticket:order_center'))
     
-    # 模拟天气数据（实际项目中可以接入天气API）
-    weather_data = {
-        'date': order.use_date,
-        'temperature': '15-25°C',
-        'weather': '晴',
-        'wind': '微风',
-        'humidity': '45%',
-        'advice': '天气适宜出行，建议穿着轻便衣物'
-    }
+    # 获取景点地区名称
+    region_name = order.scenic_spot.region.name if order.scenic_spot.region else '未知地区'
+    
+    # 调用天气API获取真实天气数据
+    weather_result = get_weather_by_region(region_name, order.use_date)
+    
+    if weather_result['success']:
+        # 天气查询成功
+        weather_data = weather_result
+    else:
+        # 天气查询失败，使用默认模拟数据
+        weather_data = {
+            'date': order.use_date,
+            'temperature': '15-25°C',
+            'weather': '晴',
+            'wind': '微风',
+            'humidity': '45%',
+            'advice': f'天气查询失败：{weather_result.get("error", "未知错误")}，建议关注当地天气预报'
+        }
     
     # 渲染weather_check.html模板，将订单和天气数据传递给模板
     return render(request, 'weather_check.html', {
@@ -2767,7 +2933,12 @@ def weather_check(request, order_id):
 # order_id: 订单ID，从URL中获取
 def payment(request, order_id):
     # 根据订单ID从数据库中获取订单信息
-    order = Order.objects.get(id=order_id)
+    try:
+        order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        # 订单不存在时显示错误信息并重定向到订单中心
+        messages.error(request, '该订单不存在或已被删除')
+        return redirect(reverse('ticket:order_center'))
     
     # 渲染通用支付页面，将订单数据传递给模板
     return render(request, 'general_payment.html', {
@@ -2835,6 +3006,12 @@ def cart(request):
                 order_number = f"ORD{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}{uuid.uuid4().hex[:6].upper()}"
                 print(f"生成订单号: {order_number}")
                 
+                # 检查库存是否充足
+                if cart_item.ticket_type.stock < cart_item.quantity:
+                    print(f"购物车项ID: {item_id}，库存不足，当前库存: {cart_item.ticket_type.stock}，请求数量: {cart_item.quantity}")
+                    messages.error(request, f'{cart_item.scenic_spot.name} - {cart_item.ticket_type.name} 的门票库存不足，当前库存仅剩 {cart_item.ticket_type.stock} 张')
+                    continue
+                
                 # 计算订单总价
                 total_price = cart_item.ticket_type.price * cart_item.quantity
                 print(f"计算订单总价: {total_price}")
@@ -2850,6 +3027,11 @@ def cart(request):
                     order_number=order_number
                 )
                 print(f"创建订单成功: {order.id}")
+                
+                # 减少库存
+                cart_item.ticket_type.stock -= cart_item.quantity
+                cart_item.ticket_type.save()
+                print(f"减少库存: 门票类型ID={cart_item.ticket_type.id}, 数量={cart_item.quantity}, 剩余库存={cart_item.ticket_type.stock}")
                 
                 orders.append(order)
                 
@@ -2897,9 +3079,20 @@ def cart(request):
 def order_center(request):
     # 获取当前登录用户的所有订单
     orders = Order.objects.filter(user=request.user).order_by('-created_at')
+    # 获取当前页码，默认为1
+    page = request.GET.get('page', 1)
+
+    # 分页处理
+    paginator = Paginator(orders, 10)  # 每页显示10个订单
+    try:
+        orders_paginated = paginator.page(page)
+    except PageNotAnInteger:
+        orders_paginated = paginator.page(1)
+    except EmptyPage:
+        orders_paginated = paginator.page(paginator.num_pages)
 
     # 渲染order_center.html模板，将订单数据传递给模板
-    return render(request, 'order_center.html', {'orders': orders})
+    return render(request, 'order_center.html', {'orders': orders_paginated})
 
 # 删除购物车项视图函数
 # @login_required装饰器：要求用户必须登录才能访问该视图
@@ -3021,6 +3214,13 @@ def confirm_payment(request):
                 if order.status == 0:
                     # 模拟支付成功
                     order.status = 1  # 更新订单状态为已支付
+                    
+                    # 减少门票库存
+                    if order.ticket_type:
+                        order.ticket_type.stock -= order.quantity
+                        order.ticket_type.save()
+                        print(f"订单 {order.id} 减少库存: {order.quantity}, 剩余库存: {order.ticket_type.stock}")
+                    
                     order.save()
                     print(f"订单 {order.id} 支付成功")
                     success_count += 1

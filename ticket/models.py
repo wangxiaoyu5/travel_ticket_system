@@ -83,6 +83,9 @@ class Region(models.Model):
 class ScenicSpot(models.Model):
     DoesNotExist = None
     
+    # 显示ID，用于给用户展示的连续编号
+    display_id = models.IntegerField(default=0, verbose_name='显示ID')
+    
     # 关联的景点管理员，使用ForeignKey建立一对多关系，允许为空
     # 当关联的用户删除时，该字段设为NULL
     admin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='managed_scenic_spots', verbose_name='景点管理员')
@@ -102,8 +105,8 @@ class ScenicSpot(models.Model):
     opening_hours = models.CharField(max_length=100, verbose_name='开放时间')
     # 是否热门景点，使用BooleanField存储，默认值为False
     is_hot = models.BooleanField(default=False, verbose_name='是否热门')
-    # 景点地区，使用CharField存储，最大长度50
-    region = models.CharField(max_length=50, default='全国', verbose_name='地区')
+    # 景点地区，使用ForeignKey关联Region模型
+    region = models.ForeignKey('Region', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='地区')
     # 景点标签，使用CharField存储，最大长度100，用于存储多个标签，以逗号分隔
     tags = models.CharField(max_length=100, default='热门', verbose_name='标签', help_text='多个标签用逗号分隔')
     # 景点评分，使用DecimalField存储，最大3位数字，1位小数，默认0.0

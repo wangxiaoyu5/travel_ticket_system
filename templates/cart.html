@@ -126,14 +126,27 @@
         // 更新总价
         function updateTotalPrice() {
             let total = 0;
-            document.querySelectorAll('.itemCheckbox:checked').forEach(checkbox => {
-                const row = checkbox.closest('tr');
-                // 第7个td显示的是每个商品的总价（单价×数量），直接累加即可
-                const totalPriceText = row.querySelector('td:nth-child(7)').textContent;
-                const itemTotalPrice = parseFloat(totalPriceText.replace('¥', ''));
-                total += itemTotalPrice;
-            });
-            document.getElementById('totalPrice').textContent = `¥${total.toFixed(2)}`;
+            const checkedItems = document.querySelectorAll('.itemCheckbox:checked');
+            
+            if (checkedItems.length > 0) {
+                checkedItems.forEach(checkbox => {
+                    const row = checkbox.closest('tr');
+                    // 第7个td显示的是每个商品的总价（单价×数量），直接累加即可
+                    const totalPriceElement = row.querySelector('td:nth-child(7)');
+                    if (totalPriceElement) {
+                        const totalPriceText = totalPriceElement.textContent;
+                        const itemTotalPrice = parseFloat(totalPriceText.replace('¥', ''));
+                        if (!isNaN(itemTotalPrice)) {
+                            total += itemTotalPrice;
+                        }
+                    }
+                });
+            }
+            
+            const totalPriceElement = document.getElementById('totalPrice');
+            if (totalPriceElement) {
+                totalPriceElement.textContent = `¥${total.toFixed(2)}`;
+            }
         }
         
         // 初始化时更新总价

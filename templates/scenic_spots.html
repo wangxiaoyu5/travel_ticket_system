@@ -45,14 +45,7 @@
                                         全部地区
                                     </a>
                                 </li>
-                                <li class="mb-2">
-                                    <a 
-                                        href="{% url 'ticket:scenic_spots' %}?{% if search_keyword %}search={{ search_keyword }}&{% endif %}region=全国{% if category_filter %}&category={{ category_filter }}{% endif %}" 
-                                        class="text-decoration-none text-dark {% if region_filter == '全国' %}fw-bold{% endif %}"
-                                    >
-                                        全国
-                                    </a>
-                                </li>
+
                                 {% for region in regions %}
                                 <li class="mb-2">
                                     <a 
@@ -102,12 +95,19 @@
                         <div class="card h-100 d-flex flex-column shadow-sm border-0">
                             <!-- 景点封面图 -->
                             <div class="position-relative">
+                                {% if spot.image %}
                                 <img 
                                     src="{{ spot.image.url }}" 
                                     class="card-img-top" 
                                     alt="{{ spot.name }}" 
                                     style="height: 200px; object-fit: cover;"
                                 >
+                                {% else %}
+                                <div class="card-img-top d-flex justify-content-center align-items-center"
+                                     style="height: 200px; background-color: #f8f9fa;">
+                                    <span class="text-muted">暂无图片</span>
+                                </div>
+                                {% endif %}
                                 {% if spot.is_hot %}
                                 <span class="position-absolute top-0 start-0 bg-danger text-white px-2 py-1 m-2 rounded">
                                     热门
@@ -115,14 +115,14 @@
                                 {% endif %}
                             </div>
                             
-                            <!-- 景点信息 -->
+                            <!-- 景点 -->
                             <div class="card-body flex-grow-1">
                                 <!-- 景点名称 -->
                                 <h5 class="card-title mb-2">{{ spot.name }}</h5>
                                 
                                 <!-- 景点位置 -->
                                 <p class="card-text text-muted small mb-3">
-                                    <i class="bi bi-geo-alt"></i> {{ spot.region }}
+                                    <i class="bi bi-geo-alt"></i> {{ spot.region.name|default:"未设置" }}
                                 </p>
                                 
                                 <!-- 景点标签 -->
@@ -163,6 +163,61 @@
                     </div>
                     {% endfor %}
                 </div>
+                
+                <!-- 分页导航 -->
+                {% if spots.has_other_pages %}
+                <div class="mt-5 d-flex justify-content-center">
+                    <nav aria-label="Page navigation example">
+                        <ul class="pagination">
+                            <!-- 上一页 -->
+                            {% if spots.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" 
+                                   href="?page={{ spots.previous_page_number }}{% if search_keyword %}&search={{ search_keyword }}{% endif %}{% if region_filter %}&region={{ region_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}"
+                                   aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&laquo;</a>
+                            </li>
+                            {% endif %}
+                            
+                            <!-- 页码 -->
+                            {% for i in spots.paginator.page_range %}
+                                {% if spots.number == i %}
+                                <li class="page-item active" aria-current="page">
+                                    <span class="page-link">{{ i }}</span>
+                                </li>
+                                {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" 
+                                       href="?page={{ i }}{% if search_keyword %}&search={{ search_keyword }}{% endif %}{% if region_filter %}&region={{ region_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}">
+                                        {{ i }}
+                                    </a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            <!-- 下一页 -->
+                            {% if spots.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" 
+                                   href="?page={{ spots.next_page_number }}{% if search_keyword %}&search={{ search_keyword }}{% endif %}{% if region_filter %}&region={{ region_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}"
+                                   aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&raquo;</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

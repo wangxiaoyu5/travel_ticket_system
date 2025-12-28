@@ -153,7 +153,7 @@
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.view_name == 'ticket:scenic_spots' %}active{% endif %}" href="{% url 'ticket:scenic_spots' %}">
                             <i class="bi bi-building text-light me-1"></i>
-                            景点信息
+                            景点
                         </a>
                     </li>
                     <li class="nav-item">
@@ -238,8 +238,8 @@
         </div>
     </nav>
 
-    <!-- 消息提示 -->
-    {% if messages %}
+    <!-- 消息提示仅在需要时显示 -->
+    {% if messages and request.resolver_match.view_name != 'ticket:login' %}
     <div class="container mt-3">
         {% for message in messages %}
         <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">

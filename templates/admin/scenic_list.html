@@ -55,9 +55,9 @@
                                 <input class="form-check-input scenic-checkbox" type="checkbox" name="scenic_ids" value="{{ scenic.id }}">
                             </div>
                         </td>
-                        <td>{{ scenic.id }}</td>
+                        <td>{{ scenic.display_id }}</td>
                         <td>{{ scenic.name }}</td>
-                        <td>{{ scenic.region }}</td>
+                        <td>{{ scenic.region.name|default:"未设置" }}</td>
                         <td>{{ scenic.get_category_display }}</td>
                         <td>
                             {% if scenic.is_hot %}
@@ -103,6 +103,61 @@
                     {% endfor %}
                 </tbody>
             </table>
+            
+            <!-- 分页导航 -->
+            {% if scenic_spots.has_other_pages %}
+            <div class="mt-4 d-flex justify-content-center">
+                <nav aria-label="Page navigation example">
+                    <ul class="pagination">
+                        <!-- 上一页 -->
+                        {% if scenic_spots.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" 
+                               href="?page={{ scenic_spots.previous_page_number }}{% if search_keyword %}&search={{ search_keyword }}{% endif %}"
+                               aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&laquo;</a>
+                        </li>
+                        {% endif %}
+                        
+                        <!-- 页码 -->
+                        {% for i in scenic_spots.paginator.page_range %}
+                            {% if scenic_spots.number == i %}
+                            <li class="page-item active" aria-current="page">
+                                <span class="page-link">{{ i }}</span>
+                            </li>
+                            {% else %}
+                            <li class="page-item">
+                                <a class="page-link" 
+                                   href="?page={{ i }}{% if search_keyword %}&search={{ search_keyword }}{% endif %}">
+                                    {{ i }}
+                                </a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        <!-- 下一页 -->
+                        {% if scenic_spots.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" 
+                               href="?page={{ scenic_spots.next_page_number }}{% if search_keyword %}&search={{ search_keyword }}{% endif %}"
+                               aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&raquo;</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
         </div>
     </div>
     

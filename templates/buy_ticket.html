@@ -143,7 +143,7 @@
                                                     </div>
                                                 </div>
                                                 {% else %}
-                                                <div class="card ticket-card border cursor-pointer" onclick="selectTicket({{ ticket.id }}, '{{ ticket.name }}', {{ ticket.price }})"><input type="radio" name="ticket_type" value="{{ ticket.id }}" class="d-none">
+                                                <div class="card ticket-card border cursor-pointer" data-stock="{{ ticket.stock }}" onclick="selectTicket({{ ticket.id }}, '{{ ticket.name }}', {{ ticket.price }})"><input type="radio" name="ticket_type" value="{{ ticket.id }}" class="d-none">
                                                     <div class="card-body">
                                                         <div class="d-flex justify-content-between align-items-center">
                                                             <h6 class="card-title mb-0">{{ ticket.name }}</h6>
@@ -365,7 +365,7 @@
         // 为数量输入框添加change事件监听器
         document.getElementById('quantity').addEventListener('change', updateTotalPriceFromInputs);
         
-        // 从输入框更新总价
+        // 从输入框更新总价并检查库存
         function updateTotalPriceFromInputs() {
             const quantity = parseInt(document.getElementById('quantity').value);
             const selectedTicket = document.querySelector('input[name="ticket_type"]:checked');
@@ -374,6 +374,21 @@
                 const ticketCard = selectedTicket.closest('.ticket-card');
                 const ticketPriceText = ticketCard.querySelector('.text-danger').textContent;
                 const ticketPrice = parseFloat(ticketPriceText.replace('¥', ''));
+                
+                // 获取库存
+                const stock = parseInt(ticketCard.getAttribute('data-stock'));
+                
+                // 检查库存
+                if (stock < quantity) {
+                    // 如果库存不足，显示警告样式
+                    ticketCard.classList.add('border-danger');
+                    ticketCard.classList.remove('border-primary');
+                } else {
+                    // 如果库存充足，恢复正常样式
+                    ticketCard.classList.remove('border-danger');
+                    ticketCard.classList.add('border-primary');
+                }
+                
                 const totalPrice = ticketPrice * quantity;
                 document.getElementById('totalPrice').textContent = `¥${totalPrice.toFixed(2)}`;
             } else {
@@ -383,13 +398,24 @@
             }
         }
         
-        // 表单验证：检查是否选择了门票类型
+        // 表单验证：检查是否选择了门票类型和库存是否充足
         function validateForm() {
             const selectedTicket = document.querySelector('input[name="ticket_type"]:checked');
             if (!selectedTicket) {
                 alert('请选择门票类型');
                 return false;
             }
+            
+            // 检查库存是否充足
+            const ticketCard = selectedTicket.closest('.ticket-card');
+            const stock = parseInt(ticketCard.getAttribute('data-stock'));
+            const quantity = parseInt(document.getElementById('quantity').value);
+            
+            if (stock < quantity) {
+                alert(`库存不足，当前库存仅剩 ${stock} 张`);
+                return false;
+            }
+            
             return true;
         }
     </script>

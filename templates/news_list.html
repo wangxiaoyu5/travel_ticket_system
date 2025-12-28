@@ -52,6 +52,61 @@
                     暂无相关资讯公告
                 </div>
                 {% endif %}
+                
+                <!-- 分页导航 -->
+                {% if news.has_other_pages %}
+                <div class="mt-5 d-flex justify-content-center">
+                    <nav aria-label="Page navigation example">
+                        <ul class="pagination">
+                            <!-- 上一页 -->
+                            {% if news.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" 
+                                   href="?page={{ news.previous_page_number }}{% if filter_type != 'all' %}&type={{ filter_type }}{% endif %}"
+                                   aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&laquo;</a>
+                            </li>
+                            {% endif %}
+                            
+                            <!-- 页码 -->
+                            {% for i in news.paginator.page_range %}
+                                {% if news.number == i %}
+                                <li class="page-item active" aria-current="page">
+                                    <span class="page-link">{{ i }}</span>
+                                </li>
+                                {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" 
+                                       href="?page={{ i }}{% if filter_type != 'all' %}&type={{ filter_type }}{% endif %}">
+                                        {{ i }}
+                                    </a>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            <!-- 下一页 -->
+                            {% if news.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" 
+                                   href="?page={{ news.next_page_number }}{% if filter_type != 'all' %}&type={{ filter_type }}{% endif %}"
+                                   aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&raquo;</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

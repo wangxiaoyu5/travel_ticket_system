@@ -20,7 +20,13 @@
             {% for carousel in carousels %}
             <div class="carousel-item {% if forloop.first %}active{% endif %}">
                 <a href="{% url 'ticket:scenic_spot_detail' spot_id=carousel.scenic_spot.id %}">
+                    {% if carousel.image %}
                     <img src="{{ carousel.image.url }}" class="d-block w-100" alt="{{ carousel.scenic_spot.name }}">
+                    {% else %}
+                    <div class="d-block w-100 h-100 d-flex justify-content-center align-items-center bg-light" style="min-height: 500px;">
+                        <span class="text-muted">暂无图片</span>
+                    </div>
+                    {% endif %}
                 </a>
                 <div class="carousel-caption d-none d-md-block">
                     <a href="{% url 'ticket:scenic_spot_detail' spot_id=carousel.scenic_spot.id %}" class="text-white text-decoration-none">
@@ -110,10 +116,17 @@
             {% for spot in hot_spots %}
             <div class="col-md-4 mb-4">
                 <div class="card h-100 d-flex flex-column">
-                    <img src="{{ spot.image.url }}" 
-                         class="card-img-top" 
-                         alt="{{ spot.name }}" 
-                         style="height: 250px; object-fit: cover;">
+                {% if spot.image %}
+                <img src="{{ spot.image.url }}"
+                     class="card-img-top"
+                     alt="{{ spot.name }}"
+                     style="height: 250px; object-fit: cover;">
+                {% else %}
+                <div class="card-img-top d-flex justify-content-center align-items-center"
+                     style="height: 250px; background-color: #f8f9fa;">
+                    <span class="text-muted">暂无图片</span>
+                </div>
+                {% endif %}
                     <div class="card-body flex-grow-1">
                         <h5 class="card-title">{{ spot.name }}</h5>
                         <p class="card-text">{{ spot.description|truncatechars:120 }}</p>

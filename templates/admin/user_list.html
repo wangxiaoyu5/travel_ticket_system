@@ -96,6 +96,61 @@
                     {% endfor %}
                 </tbody>
             </table>
+            
+            <!-- 分页导航 -->
+            {% if users.has_other_pages %}
+            <div class="mt-4 d-flex justify-content-center">
+                <nav aria-label="Page navigation example">
+                    <ul class="pagination">
+                        <!-- 上一页 -->
+                        {% if users.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" 
+                               href="?page={{ users.previous_page_number }}{% if role_filter %}&role={{ role_filter }}{% endif %}"
+                               aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&laquo;</a>
+                        </li>
+                        {% endif %}
+                        
+                        <!-- 页码 -->
+                        {% for i in users.paginator.page_range %}
+                            {% if users.number == i %}
+                            <li class="page-item active" aria-current="page">
+                                <span class="page-link">{{ i }}</span>
+                            </li>
+                            {% else %}
+                            <li class="page-item">
+                                <a class="page-link" 
+                                   href="?page={{ i }}{% if role_filter %}&role={{ role_filter }}{% endif %}">
+                                    {{ i }}
+                                </a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        <!-- 下一页 -->
+                        {% if users.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" 
+                               href="?page={{ users.next_page_number }}{% if role_filter %}&role={{ role_filter }}{% endif %}"
+                               aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&raquo;</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
         </div>
     </div>
     

@@ -21,9 +21,8 @@
                             <select class="form-select" id="region" name="region" required>
                                 <option value="">请选择地区</option>
                                 {% for region in regions %}
-                                <option value="{{ region.name }}">{{ region.name }}</option>
+                                <option value="{{ region.id }}">{{ region.name }}</option>
                                 {% endfor %}
-                                <option value="其他">其他</option>
                             </select>
                         </div>
                         <div class="mb-3">

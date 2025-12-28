@@ -103,7 +103,7 @@
                                                     <h6>景点信息</h6>
                                                     <ul class="list-unstyled">
                                                         <li><strong>景点名称：</strong>{{ order.scenic_spot.name }}</li>
-                                                        <li><strong>地区：</strong>{{ order.scenic_spot.region }}</li>
+                                                        <li><strong>地区：</strong>{{ order.scenic_spot.region.name|default:"未设置" }}</li>
                                                         <li><strong>地址：</strong>{{ order.scenic_spot.address }}</li>
                                                         <li><strong>门票类型：</strong>{{ order.ticket_type.name|default:"普通票" }}</li>
                                                     </ul>
@@ -168,6 +168,61 @@
                     {% endfor %}
                 </tbody>
             </table>
+            
+            <!-- 分页导航 -->
+            {% if orders.has_other_pages %}
+            <div class="mt-4 d-flex justify-content-center">
+                <nav aria-label="Page navigation example">
+                    <ul class="pagination">
+                        <!-- 上一页 -->
+                        {% if orders.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" 
+                               href="?page={{ orders.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_keyword %}&search={{ search_keyword }}{% endif %}"
+                               aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&laquo;</a>
+                        </li>
+                        {% endif %}
+                        
+                        <!-- 页码 -->
+                        {% for i in orders.paginator.page_range %}
+                            {% if orders.number == i %}
+                            <li class="page-item active" aria-current="page">
+                                <span class="page-link">{{ i }}</span>
+                            </li>
+                            {% else %}
+                            <li class="page-item">
+                                <a class="page-link" 
+                                   href="?page={{ i }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_keyword %}&search={{ search_keyword }}{% endif %}">
+                                    {{ i }}
+                                </a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        <!-- 下一页 -->
+                        {% if orders.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" 
+                               href="?page={{ orders.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_keyword %}&search={{ search_keyword }}{% endif %}"
+                               aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">&raquo;</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
         </div>
     </div>
 {% endblock content %}
