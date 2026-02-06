@@ -6,6 +6,17 @@
             <h3>门票类型管理</h3>
         </div>
         <div class="card-body">
+            <!-- 日期选择栏 -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <form method="get" action="{% url 'ticket:scenic_admin_ticket_types' %}" class="d-flex align-items-center">
+                        <label for="selected_date" class="form-label me-2">选择日期：</label>
+                        <input type="date" class="form-control me-2" id="selected_date" name="selected_date" 
+                               min="{% now 'Y-m-d' %}" value="{{ selected_date|default:today }}" required onchange="this.form.submit()">
+                    </form>
+                </div>
+            </div>
+            
             <!-- 操作栏 -->
             <form method="post" action="{% url 'ticket:scenic_admin_batch_operate_ticket_types' %}" id="ticket-type-form">
                 {% csrf_token %}
@@ -37,24 +48,31 @@
                                         <th scope="col">类型</th>
                                         <th scope="col">所属景点</th>
                                         <th scope="col">价格</th>
-                                        <th scope="col">库存</th>
+                                        <th scope="col">{{ selected_date }} 库存</th>
+                                        <th scope="col">{{ selected_date }} 已售</th>
                                         <th scope="col">状态</th>
                                         <th scope="col">操作</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% if ticket_types %}
-                                        {% for ticket in ticket_types %}
+                                    {% if ticket_data %}
+                                        {% for item in ticket_data %}
+                                            {% with ticket=item.ticket date_stock=item.date_stock %}
                                             <tr>
                                                 <td><input type="checkbox" name="ticket_ids" value="{{ ticket.id }}"></td>
                                                 <td>{{ forloop.counter }}</td>
                                                 <td>{{ ticket.name }}</td>
-                                                <td>
-                                                    {% if ticket.type == 'single' %}单票{% else %}套票{% endif %}
-                                                </td>
+                                                <td>{% if ticket.type == 'single' %}单票{% else %}套票{% endif %}</td>
                                                 <td>{{ ticket.scenic_spot.name }}</td>
-                                                <td>¥{{ ticket.price|floatformat:2 }}</td>
-                                                <td>{{ ticket.stock }}</td>
+                                                <td>¥{{ ticket.price }}</td>
+                                                {% if date_stock %}
+                                                    <td>{{ date_stock.stock }}</td>
+                                                    <td>{{ date_stock.sold }}</td>
+                                                {% else %}
+                                                    <!-- 没有找到对应日期的库存记录 -->
+                                                    <td>{{ ticket.stock }}</td>
+                                                    <td>0</td>
+                                                {% endif %}
                                                 <td>
                                                     {% if ticket.is_active %}
                                                         <span class="badge bg-success">已上架</span>
@@ -63,19 +81,56 @@
                                                     {% endif %}
                                                 </td>
                                                 <td>
-                                                    <!-- 操作按钮 -->
-                                                    <a href="{% url 'ticket:scenic_admin_edit_ticket_type' ticket.id %}" class="btn btn-sm btn-primary">编辑</a>
+                                                    <a href="{% url 'ticket:scenic_admin_edit_ticket_type' ticket.id %}?selected_date={{ selected_date }}" class="btn btn-sm btn-primary">编辑</a>
                                                 </td>
                                             </tr>
+                                            {% endwith %}
                                         {% endfor %}
                                     {% else %}
                                         <tr>
-                                            <td colspan="9" class="text-center">暂无门票类型数据</td>
+                                            <td colspan="10" class="text-center">暂无门票类型</td>
                                         </tr>
                                     {% endif %}
                                 </tbody>
                             </table>
                         </div>
+                        
+                        <!-- 分页控件 -->
+                        <nav aria-label="Page navigation" class="mt-3">
+                            <ul class="pagination justify-content-center">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}&selected_date={{ selected_date }}" aria-label="Previous">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link" aria-hidden="true">&laquo;</span>
+                                    </li>
+                                {% endif %}
+                                
+                                {% for i in paginator.page_range %}
+                                    {% if page_obj.number == i %}
+                                        <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                                    {% else %}
+                                        <li class="page-item"><a class="page-link" href="?page={{ i }}&selected_date={{ selected_date }}">{{ i }}</a></li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}&selected_date={{ selected_date }}" aria-label="Next">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link" aria-hidden="true">&raquo;</span>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
                 </div>
             </form>
         </div>

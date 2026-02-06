@@ -1,7 +1,7 @@
 # 导入Django的模型模块，用于创建数据库表结构
 from django.db import models
-# 导入Django的用户抽象模型和UserManager，用于自定义用户模型
-from django.contrib.auth.models import AbstractUser, UserManager
+# 导入Django的用户抽象模型和BaseUserManager，用于自定义用户模型
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 
 # 景点分类模型，用于管理景点分类信息
 class Category(models.Model):
@@ -22,9 +22,24 @@ class Category(models.Model):
         verbose_name_plural = verbose_name  # 复数形式的可读名称
         ordering = ['name']             # 默认按分类名称排序
 
-# 自定义用户模型，继承自AbstractUser，支持三种角色
-class User(AbstractUser):
-    # 使用UserManager作为管理器，支持create_user和create_superuser方法
+# 自定义用户管理器
+class UserManager(BaseUserManager):
+    def create_user(self, username, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('The Email field must be set')
+        email = self.normalize_email(email)
+        user = self.model(username=username, email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, username, email, password=None, **extra_fields):
+        extra_fields.setdefault('role', 2)  # 网站管理员
+        return self.create_user(username, email, password, **extra_fields)
+
+# 自定义用户模型，继承自AbstractBaseUser，支持三种角色
+class User(AbstractBaseUser):
+    # 使用自定义UserManager作为管理器
     DoesNotExist = None
     objects = UserManager()
     
@@ -44,6 +59,10 @@ class User(AbstractUser):
         ('other', '其他'),   # 其他性别
     )
     
+    # 用户名
+    username = models.CharField(max_length=150, unique=True, verbose_name='用户名')
+    # 邮箱
+    email = models.EmailField(unique=True, verbose_name='邮箱')
     # 角色字段，使用IntegerField存储，默认值为0（游客）
     role = models.IntegerField(choices=ROLE_CHOICES, default=0, verbose_name='角色')
     # 头像字段，使用ImageField存储，允许为空，上传路径为'avatars/'
@@ -54,6 +73,17 @@ class User(AbstractUser):
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='', verbose_name='性别')
     # 出生日期字段，使用DateField存储，允许为空
     birthdate = models.DateField(null=True, blank=True, verbose_name='出生日期')
+    # 重置密码token，用于密码重置功能
+    reset_token = models.CharField(max_length=100, null=True, blank=True, verbose_name='重置密码token')
+    # 重置密码token过期时间
+    reset_token_expiry = models.DateTimeField(null=True, blank=True, verbose_name='重置密码token过期时间')
+    # 是否激活
+    is_active = models.BooleanField(default=True, verbose_name='是否激活')
+    
+    # 设置用户名字段
+    USERNAME_FIELD = 'username'
+    # 必需字段
+    REQUIRED_FIELDS = ['email']
     
     # 模型元数据配置
     class Meta:
@@ -64,12 +94,10 @@ class User(AbstractUser):
 class Region(models.Model):
     # 地区名称，使用CharField存储，最大长度100，必须唯一
     name = models.CharField(max_length=100, unique=True, verbose_name='地区名称')
-    # 父地区，使用ForeignKey建立自引用关系，允许为空
-    # 用于构建地区层级结构，如省、市、县
-    parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='父地区')
-    # 地区级别，使用IntegerField存储，默认值为1
-    # 用于标识地区层级，如1-省，2-市，3-县
-    level = models.IntegerField(default=1, verbose_name='地区级别')
+    # 创建时间，使用DateTimeField存储，自动添加当前时间
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    # 更新时间，使用DateTimeField存储，自动更新为当前时间
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
     # 显式定义objects管理器，解决IDE警告
     objects = models.Manager()
     
@@ -192,10 +220,12 @@ class TicketType(models.Model):
     # 门票价格，使用DecimalField存储，最大10位数字，2位小数
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='门票价格')
     # 库存数量，使用IntegerField存储，默认值为1000
-    stock = models.IntegerField(default=1000, verbose_name='库存数量')
+    stock = models.IntegerField(default=1000, verbose_name='默认库存')
     # 是否激活，使用BooleanField存储，默认值为True
     # 用于控制门票是否可购买
     is_active = models.BooleanField(default=True, verbose_name='是否激活')
+    # 门票前缀，用于区分不同日期的门票
+    prefix = models.CharField(max_length=20, blank=True, default='', verbose_name='前缀')
     # 创建时间，使用DateTimeField存储，自动添加当前时间
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     # 更新时间，使用DateTimeField存储，自动更新为当前时间
@@ -208,6 +238,29 @@ class TicketType(models.Model):
         verbose_name = '门票类型'         # 模型的可读名称
         verbose_name_plural = verbose_name  # 复数形式的可读名称
         ordering = ['-created_at']         # 默认按创建时间倒序排列
+
+# 日期库存模型，用于存储每日的门票库存信息
+class DateStock(models.Model):
+    # 关联的门票类型
+    ticket_type = models.ForeignKey(TicketType, on_delete=models.CASCADE, verbose_name='门票类型')
+    # 使用日期
+    use_date = models.DateField(verbose_name='使用日期')
+    # 当天库存
+    stock = models.IntegerField(default=1000, verbose_name='当天库存')
+    # 当天已售
+    sold = models.IntegerField(default=0, verbose_name='当天已售')
+    # 创建时间
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    # 更新时间
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    # 显式定义objects管理器
+    objects = models.Manager()
+    
+    class Meta:
+        verbose_name = '日期库存'
+        verbose_name_plural = '日期库存'
+        ordering = ['use_date']
+        unique_together = ('ticket_type', 'use_date')
 
 # 购物车模型，存储用户添加的景点门票
 class Cart(models.Model):

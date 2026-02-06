@@ -21,6 +21,9 @@ urlpatterns = [
     # 退出登录URL：/logout/ 映射到views.user_logout视图函数，URL名称为'logout'
     path('logout/', views.user_logout, name='logout'),
     
+    # 忘记密码URL：/forgot_password/ 映射到views.forgot_password视图函数，URL名称为'forgot_password'
+    path('forgot_password/', views.forgot_password, name='forgot_password'),
+    
     # 个人中心URL：/personal_center/ 映射到views.personal_center视图函数，URL名称为'personal_center'
     path('personal_center/', views.personal_center, name='personal_center'),
     
@@ -82,10 +85,11 @@ urlpatterns = [
     # 获取景点列表API：/api/scenic_spots/ 映射到views.get_scenic_spots_api视图函数
     path('api/scenic_spots/', views.get_scenic_spots_api, name='get_scenic_spots_api'),
     
+    # 获取门票库存API：/api/get_ticket_stocks/ 映射到views.get_ticket_stocks视图函数
+    path('api/get_ticket_stocks/', views.get_ticket_stocks, name='get_ticket_stocks'),
+    
     # 景点管理员后台URL
-    # 控制台
-    path('scenic_admin/', views.scenic_admin_index, name='scenic_admin_index'),
-    # 景点信息管理
+    # 景点管理景点信息管理
     path('scenic_admin/scenic_spots/', views.scenic_admin_scenic_spots, name='scenic_admin_scenic_spots'),
     # 景点编辑
     path('scenic_admin/scenic_spot/edit/<int:spot_id>/', views.scenic_admin_edit_scenic_spot, name='scenic_admin_edit_scenic_spot'),
@@ -101,6 +105,8 @@ urlpatterns = [
     path('scenic_admin/ticket_type/edit/<int:ticket_id>/', views.scenic_admin_edit_ticket_type, name='scenic_admin_edit_ticket_type'),
     # 门票类型批量操作
     path('scenic_admin/ticket_types/batch_operate/', views.scenic_admin_batch_operate_ticket_types, name='scenic_admin_batch_operate_ticket_types'),
+    # 更新日期库存
+    path('scenic_admin/update_date_stock/', views.scenic_admin_update_date_stock, name='scenic_admin_update_date_stock'),
     # 订单管理
     path('scenic_admin/orders/', views.scenic_admin_orders, name='scenic_admin_orders'),
     # 订单退款（审核通过）
@@ -143,8 +149,6 @@ urlpatterns = [
     path('scenic_admin/news/batch_delete/', views.scenic_admin_batch_delete_news, name='scenic_admin_batch_delete_news'),
     
     # 平台管理员URL
-    # 控制台
-    path('admin/', views.admin_index, name='admin_index'),
     # 用户管理
     path('admin/users/', views.admin_user_list, name='admin_user_list'),
     path('admin/user/add/', views.admin_add_user, name='admin_add_user'),

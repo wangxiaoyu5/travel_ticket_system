@@ -206,13 +206,13 @@
                                 </a></li>
                             {% elif user.role == 1 %}
                                 <!-- 景点管理员菜单 -->
-                                <li><a class="dropdown-item" href="{% url 'ticket:scenic_admin_index' %}">
+                                <li><a class="dropdown-item" href="{% url 'ticket:scenic_admin_scenic_spots' %}">
                                     <i class="bi bi-building text-primary me-2"></i>
                                     景点管理后台
                                 </a></li>
                             {% elif user.role == 2 %}
                                 <!-- 网站管理员菜单 -->
-                                <li><a class="dropdown-item" href="{% url 'ticket:admin_index' %}">
+                                <li><a class="dropdown-item" href="{% url 'ticket:admin_user_list' %}">
                                     <i class="bi bi-person-workspace text-primary me-2"></i>
                                     网站管理后台
                                 </a></li>

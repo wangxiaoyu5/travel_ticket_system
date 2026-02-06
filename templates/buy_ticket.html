@@ -59,21 +59,28 @@
                             
                             <!-- 选择日期时间 -->
                             <div class="mb-4">
-                                <label for="useDate" class="form-label">使用日期</label>
-                                <input type="date" class="form-control" id="useDate" name="use_date" required value="{{ selected_use_date|default:'' }}">
-                            </div>
-                            
-                            <script>
-                                // 设置默认日期为当天日期
-                                document.addEventListener('DOMContentLoaded', function() {
-                                    const today = new Date().toISOString().split('T')[0];
-                                    const useDateInput = document.getElementById('useDate');
-                                    if (!useDateInput.value) {
-                                        useDateInput.value = today;
-                                    }
-                                    
-                                    // 如果有保存的门票类型选择，自动选择它
-                                    {% if selected_ticket_type %}
+                                    <label for="useDate" class="form-label">使用日期</label>
+                                    <input type="date" class="form-control" id="useDate" name="use_date" required value="{{ selected_use_date|default:'' }}" min="{% now 'Y-m-d' %}" onchange="updateTicketStocks()">
+                                </div>
+                                
+                                <script>
+                                    // 设置默认日期为当天日期，并限制只能选择当天及以后的日期
+                                    document.addEventListener('DOMContentLoaded', function() {
+                                        const today = new Date().toISOString().split('T')[0];
+                                        const useDateInput = document.getElementById('useDate');
+                                        // 设置最小日期为当天
+                                        useDateInput.min = today;
+                                        if (!useDateInput.value) {
+                                            useDateInput.value = today;
+                                        }
+                                        
+                                        // 页面加载时更新库存显示
+                                    updateTicketStocks();
+                                });
+                                
+                                // 如果有保存的门票类型选择，自动选择它
+                                {% if selected_ticket_type %}
+                                    document.addEventListener('DOMContentLoaded', function() {
                                         const ticketId = {{ selected_ticket_type }};
                                         const selectedTicket = document.querySelector(`input[name="ticket_type"][value="${ticketId}"]`);
                                         if (selectedTicket) {
@@ -91,8 +98,8 @@
                                             const ticketPrice = parseFloat(ticketCard.querySelector('.text-danger').textContent.replace('¥', ''));
                                             selectTicket(ticketId, ticketName, ticketPrice);
                                         }
-                                    {% endif %}
-                                });
+                                    });
+                                {% endif %}
                             </script>
                             
                             <!-- 选择门票类型 -->
@@ -112,10 +119,11 @@
                                 <!-- 单票选项 -->
                                 <div id="singleTicketOptions" class="ticket-options">
                                     <div class="row g-3">
-                                        {% if single_tickets.exists %}
-                                            {% for ticket in single_tickets %}
+                                        {% if single_tickets %}
+                                            {% for item in single_tickets %}
+                                            {% with ticket=item.ticket stock=item.stock is_sold_out=item.is_sold_out %}
                                             <div class="col-md-6">
-                                                {% if ticket.stock <= 0 %}
+                                                {% if is_sold_out or stock <= 0 %}
                                                 <div class="card ticket-card border cursor-not-allowed bg-light" style="opacity: 0.7;">
                                                     <div class="card-body">
                                                         <div class="d-flex justify-content-between align-items-center">
@@ -143,7 +151,7 @@
                                                     </div>
                                                 </div>
                                                 {% else %}
-                                                <div class="card ticket-card border cursor-pointer" data-stock="{{ ticket.stock }}" onclick="selectTicket({{ ticket.id }}, '{{ ticket.name }}', {{ ticket.price }})"><input type="radio" name="ticket_type" value="{{ ticket.id }}" class="d-none">
+                                                <div class="card ticket-card border cursor-pointer" data-stock="{{ stock }}" onclick="selectTicket({{ ticket.id }}, '{{ ticket.name }}', {{ ticket.price }})"><input type="radio" name="ticket_type" value="{{ ticket.id }}" class="d-none">
                                                     <div class="card-body">
                                                         <div class="d-flex justify-content-between align-items-center">
                                                             <h6 class="card-title mb-0">{{ ticket.name }}</h6>
@@ -165,12 +173,13 @@
                                                             {% endif %}
                                                         </p>
                                                         <p class="card-text text-sm text-success mt-1">
-                                                            <i class="bi bi-check-circle"></i> 库存充足：{{ ticket.stock }} 张
+                                                            <i class="bi bi-check-circle"></i> 库存充足：{{ stock }} 张
                                                         </p>
                                                     </div>
                                                 </div>
                                                 {% endif %}
                                             </div>
+                                            {% endwith %}
                                             {% endfor %}
                                         {% else %}
                                             <div class="col-12">
@@ -183,10 +192,11 @@
                                 <!-- 套票选项 -->
                                 <div id="packageTicketOptions" class="ticket-options" style="display: none;">
                                     <div class="row g-3">
-                                        {% if package_tickets.exists %}
-                                            {% for ticket in package_tickets %}
+                                        {% if package_tickets %}
+                                            {% for item in package_tickets %}
+                                            {% with ticket=item.ticket stock=item.stock is_sold_out=item.is_sold_out %}
                                             <div class="col-md-6">
-                                                {% if ticket.stock <= 0 %}
+                                                {% if is_sold_out or stock <= 0 %}
                                                 <div class="card ticket-card border cursor-not-allowed bg-light" style="opacity: 0.7;">
                                                     <div class="card-body">
                                                         <div class="d-flex justify-content-between align-items-center">
@@ -200,7 +210,7 @@
                                                     </div>
                                                 </div>
                                                 {% else %}
-                                                <div class="card ticket-card border cursor-pointer" onclick="selectTicket({{ ticket.id }}, '{{ ticket.name }}', {{ ticket.price }})"><input type="radio" name="ticket_type" value="{{ ticket.id }}" class="d-none">
+                                                <div class="card ticket-card border cursor-pointer" data-stock="{{ stock }}" onclick="selectTicket({{ ticket.id }}, '{{ ticket.name }}', {{ ticket.price }})"><input type="radio" name="ticket_type" value="{{ ticket.id }}" class="d-none">
                                                     <div class="card-body">
                                                         <div class="d-flex justify-content-between align-items-center">
                                                             <h6 class="card-title mb-0">{{ ticket.name }}</h6>
@@ -208,12 +218,13 @@
                                                         </div>
                                                         <p class="card-text text-sm text-muted mt-2">套票包含多个景点或服务</p>
                                                         <p class="card-text text-sm text-success mt-1">
-                                                            <i class="bi bi-check-circle"></i> 库存充足：{{ ticket.stock }} 张
+                                                            <i class="bi bi-check-circle"></i> 库存充足：{{ stock }} 张
                                                         </p>
                                                     </div>
                                                 </div>
                                                 {% endif %}
                                             </div>
+                                            {% endwith %}
                                             {% endfor %}
                                         {% else %}
                                             <div class="col-12">
@@ -417,6 +428,65 @@
             }
             
             return true;
+        }
+        
+        // 更新门票库存显示
+        function updateTicketStocks() {
+            // 获取选择的日期
+            const selectedDate = document.getElementById('useDate').value;
+            
+            // 发送AJAX请求获取对应日期的库存数据
+            fetch(`{% url 'ticket:get_ticket_stocks' %}?date=${selectedDate}&spot_id={{ spot.id }}`)   
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 更新每个门票卡片的库存显示
+                        data.data.forEach(ticketData => {
+                            const ticketCard = document.querySelector(`input[name="ticket_type"][value="${ticketData.id}"]`).closest('.ticket-card');
+                            if (ticketCard) {
+                                const stockElement = ticketCard.querySelector('.text-success');
+                                const soldOutElement = ticketCard.querySelector('.text-danger');
+                                
+                                if (ticketData.is_sold_out || ticketData.stock <= 0) {
+                                    // 更新为售罄状态
+                                    if (stockElement) {
+                                        stockElement.remove();
+                                    }
+                                    if (!soldOutElement) {
+                                        const cardBody = ticketCard.querySelector('.card-body');
+                                        cardBody.innerHTML += `<p class="card-text text-sm text-danger mt-1">
+                                            <i class="bi bi-exclamation-triangle"></i> 门票已售罄
+                                        </p>`;
+                                    }
+                                    ticketCard.classList.add('cursor-not-allowed', 'bg-light');
+                                    ticketCard.style.opacity = '0.7';
+                                    ticketCard.setAttribute('data-stock', 0);
+                                } else {
+                                    // 更新为库存充足状态
+                                    if (soldOutElement) {
+                                        soldOutElement.remove();
+                                    }
+                                    if (stockElement) {
+                                        stockElement.innerHTML = `<i class="bi bi-check-circle"></i> 库存充足：${ticketData.stock} 张`;
+                                    } else {
+                                        const cardBody = ticketCard.querySelector('.card-body');
+                                        cardBody.innerHTML += `<p class="card-text text-sm text-success mt-1">
+                                            <i class="bi bi-check-circle"></i> 库存充足：${ticketData.stock} 张
+                                        </p>`;
+                                    }
+                                    ticketCard.classList.remove('cursor-not-allowed', 'bg-light');
+                                    ticketCard.style.opacity = '1';
+                                    ticketCard.setAttribute('data-stock', ticketData.stock);
+                                }
+                            }
+                        });
+                    } else {
+                        console.error('获取库存数据失败：', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('获取库存数据失败：', error);
+                });
         }
     </script>
 

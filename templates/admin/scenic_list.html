@@ -58,7 +58,7 @@
                         <td>{{ scenic.display_id }}</td>
                         <td>{{ scenic.name }}</td>
                         <td>{{ scenic.region.name|default:"未设置" }}</td>
-                        <td>{{ scenic.get_category_display }}</td>
+                        <td>{{ scenic.category }}</td>
                         <td>
                             {% if scenic.is_hot %}
                             <span class="badge bg-warning">热门</span>

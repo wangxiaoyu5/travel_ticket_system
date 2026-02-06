@@ -176,7 +176,6 @@
                                                 <option value="" {% if not user.gender %}selected{% endif %}>请选择性别</option>
                                                 <option value="male" {% if user.gender == 'male' %}selected{% endif %}>男</option>
                                                 <option value="female" {% if user.gender == 'female' %}selected{% endif %}>女</option>
-                                                <option value="other" {% if user.gender == 'other' %}selected{% endif %}>其他</option>
                                             </select>
                                         </div>
                                     </div>
@@ -184,7 +183,9 @@
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
                                             <label for="birthdate" class="form-label">出生日期</label>
-                                            <input type="date" class="form-control" id="birthdate" name="birthdate" value="{{ user.birthdate|date:'Y-m-d' }}">
+                                            <input type="text" class="form-control" id="birthdate" name="birthdate" 
+                                                   value="{% if user.birthdate %}{{ user.birthdate|date:'Y/m/d' }}{% else %}年/月/日{% endif %}"
+                                                   placeholder="请输入出生日期，格式：年/月/日">
                                         </div>
                                         <div class="col-md-6 mb-3">
                                             <label for="phone" class="form-label">手机号</label>
@@ -213,10 +214,36 @@
                                 <h5>我的收藏</h5>
                             </div>
                             <div class="card-body">
-                                <div class="text-center py-5">
-                                    <p>暂无收藏记录</p>
-                                    <a href="{% url 'ticket:scenic_spots' %}" class="btn btn-primary">去浏览景点</a>
-                                </div>
+                                {% if favorites %}
+                                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                                        {% for favorite in favorites %}
+                                            <div class="col">
+                                                <div class="card h-100">
+                                                    {% if favorite.scenic_spot.image %}
+                                                        <img src="{{ favorite.scenic_spot.image.url }}" class="card-img-top" alt="{{ favorite.scenic_spot.name }}" style="height: 180px; object-fit: cover;">
+                                                    {% else %}
+                                                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+                                                            <span class="text-muted">{{ favorite.scenic_spot.name|first }}</span>
+                                                        </div>
+                                                    {% endif %}
+                                                    <div class="card-body">
+                                                        <h5 class="card-title">{{ favorite.scenic_spot.name }}</h5>
+                                                        <p class="card-text text-muted">{{ favorite.scenic_spot.address }}</p>
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <span class="text-danger fw-bold">¥{{ favorite.scenic_spot.price }}</span>
+                                                            <a href="{% url 'ticket:scenic_spot_detail' favorite.scenic_spot.id %}" class="btn btn-primary btn-sm">查看详情</a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <div class="text-center py-5">
+                                        <p>暂无收藏记录</p>
+                                        <a href="{% url 'ticket:scenic_spots' %}" class="btn btn-primary">去浏览景点</a>
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -228,10 +255,39 @@
                                 <h5>浏览历史</h5>
                             </div>
                             <div class="card-body">
-                                <div class="text-center py-5">
-                                    <p>暂无浏览历史</p>
-                                    <a href="{% url 'ticket:scenic_spots' %}" class="btn btn-primary">去浏览景点</a>
-                                </div>
+                                {% if browse_history %}
+                                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                                        {% for history in browse_history %}
+                                            <div class="col">
+                                                <div class="card h-100">
+                                                    {% if history.scenic_spot.image %}
+                                                        <img src="{{ history.scenic_spot.image.url }}" class="card-img-top" alt="{{ history.scenic_spot.name }}" style="height: 180px; object-fit: cover;">
+                                                    {% else %}
+                                                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+                                                            <span class="text-muted">{{ history.scenic_spot.name|first }}</span>
+                                                        </div>
+                                                    {% endif %}
+                                                    <div class="card-body">
+                                                        <h5 class="card-title">{{ history.scenic_spot.name }}</h5>
+                                                        <p class="card-text text-muted">{{ history.scenic_spot.address }}</p>
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <span class="text-danger fw-bold">¥{{ history.scenic_spot.price }}</span>
+                                                            <a href="{% url 'ticket:scenic_spot_detail' history.scenic_spot.id %}" class="btn btn-primary btn-sm">查看详情</a>
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-footer text-muted small">
+                                                        浏览时间：{{ history.browse_time|date:'Y-m-d H:i' }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <div class="text-center py-5">
+                                        <p>暂无浏览历史</p>
+                                        <a href="{% url 'ticket:scenic_spots' %}" class="btn btn-primary">去浏览景点</a>
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -243,10 +299,35 @@
                                 <h5>我的评论</h5>
                             </div>
                             <div class="card-body">
-                                <div class="text-center py-5">
-                                    <p>暂无评论记录</p>
-                                    <a href="{% url 'ticket:scenic_spots' %}" class="btn btn-primary">去浏览景点</a>
-                                </div>
+                                {% if my_comments %}
+                                    <div class="list-group">
+                                        {% for comment in my_comments %}
+                                            <div class="list-group-item list-group-item-action mb-3 shadow-sm">
+                                                <div class="d-flex w-100 justify-content-between">
+                                                    <h6 class="mb-1">{{ comment.scenic_spot.name }}</h6>
+                                                    <small class="text-muted">{{ comment.created_at|date:'Y-m-d H:i' }}</small>
+                                                </div>
+                                                <p class="mb-2">{{ comment.content }}</p>
+                                                {% if comment.is_replied %}
+                                                    <div class="mt-3 p-3 bg-light rounded">
+                                                        <div class="d-flex w-100 justify-content-between">
+                                                            <small class="text-primary">管理员回复：</small>
+                                                            <small class="text-muted">{{ comment.reply_time|date:'Y-m-d H:i' }}</small>
+                                                        </div>
+                                                        <p class="mb-0">{{ comment.reply }}</p>
+                                                    </div>
+                                                {% else %}
+                                                    <small class="text-muted">未回复</small>
+                                                {% endif %}
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <div class="text-center py-5">
+                                        <p>暂无评论记录</p>
+                                        <a href="{% url 'ticket:scenic_spots' %}" class="btn btn-primary">去浏览景点</a>
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>

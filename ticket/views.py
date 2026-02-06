@@ -16,7 +16,7 @@ from django.shortcuts import render, redirect, reverse
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 
 # 导入自定义模型，用于数据库查询
-from .models import ScenicSpot, News, Carousel, User, Cart, Order, ScenicSpotComment, TicketType, BrowseHistory, Category, Region, Collection
+from .models import ScenicSpot, News, Carousel, User, Cart, Order, ScenicSpotComment, TicketType, BrowseHistory, Category, Region, Collection, DateStock
 
 
 # 首页视图函数，处理网站首页的请求
@@ -85,9 +85,9 @@ def user_login(request):
                     
                     # 根据用户角色重定向到不同页面
                     if user.role == 2:  # 网站管理员
-                        return redirect(reverse('ticket:admin_index'))
+                        return redirect(reverse('ticket:admin_user_list'))  # 跳转到用户管理页面
                     elif user.role == 1:  # 景点管理员
-                        return redirect(reverse('ticket:scenic_admin_index'))
+                        return redirect(reverse('ticket:scenic_admin_scenic_spots'))  # 跳转到景点管理页面
                     else:  # 游客
                         return redirect(reverse('ticket:index'))
                 else:
@@ -111,6 +111,36 @@ def user_logout(request):
     return redirect(reverse('ticket:index'))
 
 
+# 忘记密码视图函数，处理用户忘记密码请求
+def forgot_password(request):
+    if request.method == 'POST':
+        # 获取用户输入的邮箱、新密码和确认密码
+        email = request.POST.get('email')
+        new_password = request.POST.get('new_password')
+        confirm_password = request.POST.get('confirm_password')
+        
+        # 验证密码
+        if new_password != confirm_password:
+            messages.error(request, '两次输入的密码不一致')
+            return render(request, 'forgot_password.html')
+        
+        try:
+            # 根据邮箱查找用户
+            user = User.objects.get(email=email)
+            # 更新密码
+            user.set_password(new_password)
+            user.save()
+            # 显示成功消息
+            messages.success(request, '密码重置成功，请使用新密码登录')
+            # 重定向到登录页面
+            return redirect(reverse('ticket:login'))
+        except User.DoesNotExist:
+            # 用户不存在，显示错误消息
+            messages.error(request, '该邮箱未注册')
+    # GET请求，渲染忘记密码模板
+    return render(request, 'forgot_password.html')
+
+
 # 景点管理员后台视图函数，需要登录且角色为景点管理员才能访问
 def scenic_admin_required(view_func):
     @login_required
@@ -124,47 +154,7 @@ def scenic_admin_required(view_func):
     return wrapped_view
 
 
-# 景点管理员控制台视图
-def scenic_admin_index(request):
-    # 导入日期处理模块
-    from datetime import date
 
-    # 获取当前景点管理员
-    admin = request.user
-
-    # 从数据库获取该管理员管理的景点
-    scenic_spots = ScenicSpot.objects.filter(admin=admin)
-    scenic_count = scenic_spots.count()
-
-    # 获取景点ID列表，用于后续查询
-    scenic_ids = scenic_spots.values_list('id', flat=True)
-
-    # 今日订单数：查询今天创建的订单
-    today = date.today()
-    today_orders = Order.objects.filter(scenic_spot__id__in=scenic_ids, created_at__date=today).count()
-
-    # 总销售额：计算所有已支付订单的总价之和
-    total_sales = Order.objects.filter(scenic_spot__id__in=scenic_ids, status=1).aggregate(
-        total=models.Sum('total_price')
-    )['total'] or 0
-
-    # 待处理留言：获取未回复的留言
-    pending_comments = ScenicSpotComment.objects.filter(scenic_spot__id__in=scenic_ids, is_replied=False).order_by(
-        '-created_at')[:2]
-
-    # 最近订单：获取最新的2个订单
-    recent_orders = Order.objects.filter(scenic_spot__id__in=scenic_ids).order_by('-created_at')[:2]
-
-    # 构建上下文数据
-    context = {
-        'scenic_count': scenic_count,
-        'today_orders': today_orders,
-        'total_sales': total_sales,
-        'pending_comments': pending_comments,
-        'recent_orders': recent_orders
-    }
-
-    return render(request, 'scenic_admin/index.html', context)
 
 
 # 景点信息管理视图
@@ -172,13 +162,30 @@ def scenic_admin_index(request):
 def scenic_admin_scenic_spots(request):
     # 获取当前景点管理员
     admin = request.user
+    
+    # 获取当前页码，默认为1
+    page = request.GET.get('page', 1)
 
     # 从数据库获取该管理员管理的景点
-    scenic_spots = ScenicSpot.objects.filter(admin=admin)
+    scenic_spots = ScenicSpot.objects.filter(admin=admin).order_by('-created_at')
+
+    # 分页处理，每页显示10个景点
+    paginator = Paginator(scenic_spots, 10)
+    try:
+        # 获取当前页的景点列表
+        scenic_spots_paginated = paginator.page(page)
+    except PageNotAnInteger:
+        # 如果页码不是整数，返回第一页
+        scenic_spots_paginated = paginator.page(1)
+    except EmptyPage:
+        # 如果页码超出范围，返回最后一页
+        scenic_spots_paginated = paginator.page(paginator.num_pages)
 
     # 构建上下文数据
     context = {
-        'scenic_spots': scenic_spots
+        'scenic_spots': scenic_spots_paginated,
+        'paginator': paginator,
+        'page_obj': scenic_spots_paginated
     }
 
     return render(request, 'scenic_admin/scenic_spots.html', context)
@@ -377,16 +384,55 @@ def scenic_admin_ticket_types(request):
     # 获取当前景点管理员
     admin = request.user
     
+    # 获取当前页码，默认为1
+    page = request.GET.get('page', 1)
+    
     # 获取当前管理员管理的景点
     scenic_spots = ScenicSpot.objects.filter(admin=admin)
     scenic_ids = scenic_spots.values_list('id', flat=True)
     
     # 获取当前管理员管理的景点的门票类型
-    ticket_types = TicketType.objects.filter(scenic_spot__id__in=scenic_ids)
+    ticket_types = TicketType.objects.filter(scenic_spot__id__in=scenic_ids).order_by('-created_at')
+    
+    # 分页处理，每页显示10个门票类型
+    paginator = Paginator(ticket_types, 10)
+    try:
+        # 获取当前页的门票类型列表
+        ticket_types_paginated = paginator.page(page)
+    except PageNotAnInteger:
+        # 如果页码不是整数，返回第一页
+        ticket_types_paginated = paginator.page(1)
+    except EmptyPage:
+        # 如果页码超出范围，返回最后一页
+        ticket_types_paginated = paginator.page(paginator.num_pages)
+    
+    # 获取选择的日期，如果没有或为空则使用当天日期
+    from datetime import date
+    today = date.today().strftime('%Y-%m-%d')
+    selected_date = request.GET.get('selected_date') or today
+    
+    # 预处理日期库存数据
+    ticket_data = []
+    for ticket in ticket_types_paginated:
+        # 解析日期字符串为date对象
+        from datetime import datetime
+        selected_date_obj = datetime.strptime(selected_date, '%Y-%m-%d').date()
+        # 获取对应日期的库存记录
+        date_stock = ticket.datestock_set.filter(use_date=selected_date_obj).first()
+        
+        # 添加到数据列表
+        ticket_data.append({
+            'ticket': ticket,
+            'date_stock': date_stock
+        })
     
     # 构建上下文数据
     context = {
-        'ticket_types': ticket_types
+        'ticket_data': ticket_data,
+        'selected_date': selected_date,
+        'today': today,
+        'paginator': paginator,
+        'page_obj': ticket_types_paginated
     }
     
     return render(request, 'scenic_admin/ticket_types.html', context)
@@ -424,8 +470,23 @@ def scenic_admin_add_ticket_type(request):
             )
             ticket_type.save()
             
+            # 如果有selected_date参数，同时为该日期创建库存记录
+            selected_date = request.GET.get('selected_date')
+            if selected_date:
+                from datetime import datetime
+                selected_date_obj = datetime.strptime(selected_date, '%Y-%m-%d').date()
+                # 创建对应日期的库存记录
+                ticket_type.datestock_set.create(
+                    use_date=selected_date_obj,
+                    stock=stock
+                )
+            
             messages.success(request, '新增门票类型成功')
-            return redirect(reverse('ticket:scenic_admin_ticket_types'))
+            # 重定向时保留当前选择的日期
+            from datetime import date
+            today = date.today().strftime('%Y-%m-%d')
+            selected_date = request.GET.get('selected_date') or today
+            return redirect(f"{reverse('ticket:scenic_admin_ticket_types')}?selected_date={selected_date}")
         except Exception as e:
             messages.error(request, f'新增门票类型失败: {str(e)}')
     
@@ -451,7 +512,11 @@ def scenic_admin_edit_ticket_type(request, ticket_id):
         ticket_type = TicketType.objects.get(id=ticket_id, scenic_spot__id__in=scenic_ids)
     except TicketType.DoesNotExist:
         messages.error(request, '门票类型不存在或无权限访问')
-        return redirect(reverse('ticket:scenic_admin_ticket_types'))
+        # 重定向时保留当前选择的日期
+        from datetime import date
+        today = date.today().strftime('%Y-%m-%d')
+        selected_date = request.GET.get('selected_date') or today
+        return redirect(f"{reverse('ticket:scenic_admin_ticket_types')}?selected_date={selected_date}")
     
     if request.method == 'POST':
         # 获取表单数据
@@ -463,6 +528,7 @@ def scenic_admin_edit_ticket_type(request, ticket_id):
         
         # 更新门票类型
         try:
+            # 保存门票类型的基本信息
             ticket_type.name = name
             ticket_type.type = type
             ticket_type.price = price
@@ -470,8 +536,26 @@ def scenic_admin_edit_ticket_type(request, ticket_id):
             ticket_type.is_active = is_active
             ticket_type.save()
             
+            # 如果有selected_date参数，同时更新该日期的库存记录
+            selected_date = request.GET.get('selected_date')
+            if selected_date:
+                from datetime import datetime
+                selected_date_obj = datetime.strptime(selected_date, '%Y-%m-%d').date()
+                # 获取或创建对应日期的库存记录
+                date_stock, created = ticket_type.datestock_set.get_or_create(
+                    use_date=selected_date_obj,
+                    defaults={'stock': stock}
+                )
+                # 更新该日期的库存数量
+                date_stock.stock = stock
+                date_stock.save()
+            
             messages.success(request, '编辑门票类型成功')
-            return redirect(reverse('ticket:scenic_admin_ticket_types'))
+            # 重定向时保留当前选择的日期
+            from datetime import date
+            today = date.today().strftime('%Y-%m-%d')
+            selected_date = request.GET.get('selected_date') or today
+            return redirect(f"{reverse('ticket:scenic_admin_ticket_types')}?selected_date={selected_date}")
         except Exception as e:
             messages.error(request, f'编辑门票类型失败: {str(e)}')
     
@@ -493,7 +577,12 @@ def scenic_admin_batch_operate_ticket_types(request):
         
         if not ticket_ids:
             messages.error(request, '请选择要操作的门票类型')
-            return redirect(reverse('ticket:scenic_admin_ticket_types'))
+            # 重定向时保留当前选择的日期
+            from datetime import date
+            today = date.today().strftime('%Y-%m-%d')
+            # 从请求中获取selected_date参数，POST请求中可能没有，所以从GET中获取
+            selected_date = request.GET.get('selected_date', today)
+            return redirect(f"{reverse('ticket:scenic_admin_ticket_types')}?selected_date={selected_date}")
         
         try:
             # 获取当前景点管理员
@@ -522,7 +611,47 @@ def scenic_admin_batch_operate_ticket_types(request):
         except Exception as e:
             messages.error(request, f'操作失败: {str(e)}')
     
-    return redirect(reverse('ticket:scenic_admin_ticket_types'))
+    # 重定向时保留当前选择的日期
+    from datetime import date
+    today = date.today().strftime('%Y-%m-%d')
+    # 从请求中获取selected_date参数，POST请求中可能没有，所以从GET中获取
+    selected_date = request.GET.get('selected_date', today)
+    return redirect(f"{reverse('ticket:scenic_admin_ticket_types')}?selected_date={selected_date}")
+
+# 更新日期库存视图
+@scenic_admin_required
+def scenic_admin_update_date_stock(request):
+    if request.method == 'POST':
+        # 获取门票类型ID、使用日期和库存数量
+        ticket_type_id = request.POST.get('ticket_type_id')
+        use_date = request.POST.get('use_date')
+        stock = request.POST.get('stock')
+        
+        try:
+            # 获取当前景点管理员
+            admin = request.user
+            scenic_spots = ScenicSpot.objects.filter(admin=admin)
+            scenic_ids = scenic_spots.values_list('id', flat=True)
+            
+            # 验证门票类型是否属于当前管理员
+            ticket_type = TicketType.objects.get(
+                id=ticket_type_id,
+                scenic_spot__id__in=scenic_ids
+            )
+            
+            # 更新或创建DateStock记录
+            date_stock, created = DateStock.objects.update_or_create(
+                ticket_type=ticket_type,
+                use_date=use_date,
+                defaults={'stock': stock}
+            )
+            
+            messages.success(request, f'成功更新 {use_date} 的库存')
+        except Exception as e:
+            messages.error(request, f'操作失败: {str(e)}')
+    
+    # 重定向回门票类型列表页，保留选中的日期
+    return redirect(f"{reverse('ticket:scenic_admin_ticket_types')}?selected_date={use_date}")
 
 
 # 订单管理视图
@@ -540,6 +669,8 @@ def scenic_admin_orders(request):
     # 从请求中获取筛选条件
     status = request.GET.get('status')
     search_query = request.GET.get('q') or ''
+    # 获取当前页码，默认为1
+    page = request.GET.get('page', 1)
 
     # 构建查询
     orders = Order.objects.filter(scenic_spot__id__in=scenic_ids)
@@ -559,11 +690,25 @@ def scenic_admin_orders(request):
     # 按创建时间倒序排序
     orders = orders.order_by('-created_at')
 
+    # 分页处理，每页显示10条订单
+    paginator = Paginator(orders, 10)
+    try:
+        # 获取当前页的订单列表
+        orders_paginated = paginator.page(page)
+    except PageNotAnInteger:
+        # 如果页码不是整数，返回第一页
+        orders_paginated = paginator.page(1)
+    except EmptyPage:
+        # 如果页码超出范围，返回最后一页
+        orders_paginated = paginator.page(paginator.num_pages)
+
     # 构建上下文数据
     context = {
-        'orders': orders,
+        'orders': orders_paginated,
         'current_status': status,
-        'search_query': search_query
+        'search_query': search_query,
+        'paginator': paginator,
+        'page_obj': orders_paginated
     }
 
     return render(request, 'scenic_admin/orders.html', context)
@@ -584,6 +729,8 @@ def scenic_admin_comments(request):
     # 从请求中获取筛选条件
     replied = request.GET.get('replied')
     search_query = request.GET.get('q')
+    # 获取当前页码，默认为1
+    page = request.GET.get('page', 1)
 
     # 构建查询
     comments = ScenicSpotComment.objects.filter(scenic_spot__id__in=scenic_ids)
@@ -604,11 +751,25 @@ def scenic_admin_comments(request):
     # 按创建时间倒序排序
     comments = comments.order_by('-created_at')
 
+    # 分页处理，每页显示10条留言
+    paginator = Paginator(comments, 10)
+    try:
+        # 获取当前页的留言列表
+        comments_paginated = paginator.page(page)
+    except PageNotAnInteger:
+        # 如果页码不是整数，返回第一页
+        comments_paginated = paginator.page(1)
+    except EmptyPage:
+        # 如果页码超出范围，返回最后一页
+        comments_paginated = paginator.page(paginator.num_pages)
+
     # 构建上下文数据
     context = {
-        'comments': comments,
+        'comments': comments_paginated,
         'current_replied': replied,
-        'search_query': search_query
+        'search_query': search_query,
+        'paginator': paginator,
+        'page_obj': comments_paginated
     }
 
     return render(request, 'scenic_admin/comments.html', context)
@@ -754,12 +915,29 @@ def scenic_admin_news_announcements(request):
 # 公告管理视图
 @scenic_admin_required
 def scenic_admin_announcements(request):
+    # 获取当前页码，默认为1
+    page = request.GET.get('page', 1)
+    
     # 获取公告列表（is_announcement=True）
-    announcements = News.objects.filter(is_announcement=True)
+    announcements = News.objects.filter(is_announcement=True).order_by('-created_at')
+    
+    # 分页处理，每页显示10条公告
+    paginator = Paginator(announcements, 10)
+    try:
+        # 获取当前页的公告列表
+        announcements_paginated = paginator.page(page)
+    except PageNotAnInteger:
+        # 如果页码不是整数，返回第一页
+        announcements_paginated = paginator.page(1)
+    except EmptyPage:
+        # 如果页码超出范围，返回最后一页
+        announcements_paginated = paginator.page(paginator.num_pages)
     
     # 构建上下文数据
     context = {
-        'announcements': announcements
+        'announcements': announcements_paginated,
+        'paginator': paginator,
+        'page_obj': announcements_paginated
     }
     
     return render(request, 'scenic_admin/announcements.html', context)
@@ -869,12 +1047,29 @@ def scenic_admin_batch_delete_announcements(request):
 # 资讯管理视图
 @scenic_admin_required
 def scenic_admin_news(request):
+    # 获取当前页码，默认为1
+    page = request.GET.get('page', 1)
+    
     # 获取资讯列表（is_announcement=False）
-    news = News.objects.filter(is_announcement=False)
+    news = News.objects.filter(is_announcement=False).order_by('-created_at')
+    
+    # 分页处理，每页显示10条资讯
+    paginator = Paginator(news, 10)
+    try:
+        # 获取当前页的资讯列表
+        news_paginated = paginator.page(page)
+    except PageNotAnInteger:
+        # 如果页码不是整数，返回第一页
+        news_paginated = paginator.page(1)
+    except EmptyPage:
+        # 如果页码超出范围，返回最后一页
+        news_paginated = paginator.page(paginator.num_pages)
     
     # 构建上下文数据
     context = {
-        'news': news
+        'news': news_paginated,
+        'paginator': paginator,
+        'page_obj': news_paginated
     }
     
     return render(request, 'scenic_admin/news.html', context)
@@ -1323,6 +1518,8 @@ def admin_edit_user(request, user_id):
 def admin_category_list(request):
     # 获取请求参数中的搜索关键词
     search_keyword = request.GET.get('search', '')
+    # 获取当前页码，默认为1
+    page = request.GET.get('page', 1)
 
     # 基础查询集
     categories = Category.objects.all()
@@ -1334,10 +1531,24 @@ def admin_category_list(request):
             models.Q(description__icontains=search_keyword)
         )
 
+    # 分页处理，每页显示10个分类
+    paginator = Paginator(categories, 10)
+    try:
+        # 获取当前页的分类列表
+        categories_paginated = paginator.page(page)
+    except PageNotAnInteger:
+        # 如果页码不是整数，返回第一页
+        categories_paginated = paginator.page(1)
+    except EmptyPage:
+        # 如果页码超出范围，返回最后一页
+        categories_paginated = paginator.page(paginator.num_pages)
+
     # 构建上下文数据
     context = {
-        'categories': categories,
-        'search_keyword': search_keyword
+        'categories': categories_paginated,
+        'search_keyword': search_keyword,
+        'paginator': paginator,
+        'page_obj': categories_paginated
     }
 
     return render(request, 'admin/category_list.html', context)
@@ -1479,6 +1690,8 @@ def admin_scenic_list(request):
 def admin_region_list(request):
     # 获取请求参数中的搜索关键词
     search_keyword = request.GET.get('search', '')
+    # 获取当前页码，默认为1
+    page = request.GET.get('page', 1)
 
     # 基础查询集
     regions = Region.objects.all()
@@ -1487,10 +1700,24 @@ def admin_region_list(request):
     if search_keyword:
         regions = regions.filter(name__icontains=search_keyword)
 
+    # 分页处理，每页显示10个地区
+    paginator = Paginator(regions, 10)
+    try:
+        # 获取当前页的地区列表
+        regions_paginated = paginator.page(page)
+    except PageNotAnInteger:
+        # 如果页码不是整数，返回第一页
+        regions_paginated = paginator.page(1)
+    except EmptyPage:
+        # 如果页码超出范围，返回最后一页
+        regions_paginated = paginator.page(paginator.num_pages)
+
     # 构建上下文数据
     context = {
-        'regions': regions,
-        'search_keyword': search_keyword
+        'regions': regions_paginated,
+        'search_keyword': search_keyword,
+        'paginator': paginator,
+        'page_obj': regions_paginated
     }
 
     return render(request, 'admin/region_list.html', context)
@@ -1502,40 +1729,25 @@ def admin_add_region(request):
     if request.method == 'POST':
         # 获取表单数据
         name = request.POST.get('name')
-        parent_id = request.POST.get('parent')
-        level = request.POST.get('level')
 
         # 表单验证
-        if not name or not level:
-            messages.error(request, '地区名称和级别不能为空')
-            # 获取所有地区，用于表单中的父地区选择
-            all_regions = Region.objects.all()
-            return render(request, 'admin/add_region.html', {'regions': all_regions})
+        if not name:
+            messages.error(request, '地区名称不能为空')
+            return render(request, 'admin/add_region.html')
 
         try:
-            # 获取父地区
-            parent = None
-            if parent_id:
-                parent = Region.objects.get(id=parent_id)
-
             # 创建地区
             Region.objects.create(
-                name=name,
-                parent=parent,
-                level=level
+                name=name
             )
             messages.success(request, '地区添加成功')
             return redirect(reverse('ticket:admin_region_list'))
         except Exception as e:
             messages.error(request, f'添加地区失败: {str(e)}')
-            # 获取所有地区，用于表单中的父地区选择
-            all_regions = Region.objects.all()
-            return render(request, 'admin/add_region.html', {'regions': all_regions})
+            return render(request, 'admin/add_region.html')
 
     # GET请求，渲染添加表单
-    # 获取所有地区，用于表单中的父地区选择
-    all_regions = Region.objects.all()
-    return render(request, 'admin/add_region.html', {'regions': all_regions})
+    return render(request, 'admin/add_region.html')
 
 
 # 编辑地区分类视图
@@ -1551,39 +1763,24 @@ def admin_edit_region(request, region_id):
     if request.method == 'POST':
         # 获取表单数据
         name = request.POST.get('name')
-        parent_id = request.POST.get('parent')
-        level = request.POST.get('level')
 
         # 表单验证
-        if not name or not level:
-            messages.error(request, '地区名称和级别不能为空')
-            # 获取所有地区，用于表单中的父地区选择
-            all_regions = Region.objects.all()
-            return render(request, 'admin/edit_region.html', {'region': region, 'regions': all_regions})
+        if not name:
+            messages.error(request, '地区名称不能为空')
+            return render(request, 'admin/edit_region.html', {'region': region})
 
         try:
-            # 获取父地区
-            parent = None
-            if parent_id:
-                parent = Region.objects.get(id=parent_id)
-
             # 更新地区信息
             region.name = name
-            region.parent = parent
-            region.level = level
             region.save()
             messages.success(request, '地区更新成功')
             return redirect(reverse('ticket:admin_region_list'))
         except Exception as e:
             messages.error(request, f'更新地区失败: {str(e)}')
-            # 获取所有地区，用于表单中的父地区选择
-            all_regions = Region.objects.all()
-            return render(request, 'admin/edit_region.html', {'region': region, 'regions': all_regions})
+            return render(request, 'admin/edit_region.html', {'region': region})
 
     # GET请求，渲染编辑表单
-    # 获取所有地区，用于表单中的父地区选择
-    all_regions = Region.objects.all()
-    return render(request, 'admin/edit_region.html', {'region': region, 'regions': all_regions})
+    return render(request, 'admin/edit_region.html', {'region': region})
 
 
 # 删除地区分类视图
@@ -2510,11 +2707,11 @@ def register(request):
 # @login_required装饰器：要求用户必须登录才能访问该视图
 @login_required
 def personal_center(request):
+    # 获取当前登录用户
+    user = request.user
+    
     # 判断请求方法是否为POST（表单提交）
     if request.method == 'POST':
-        # 获取当前登录用户
-        user = request.user
-
         # 更新用户信息
         user.username = request.POST.get('username')
         user.email = request.POST.get('email')
@@ -2523,8 +2720,18 @@ def personal_center(request):
 
         # 处理出生日期
         birthdate_str = request.POST.get('birthdate')
-        if birthdate_str:
-            user.birthdate = birthdate_str
+        if birthdate_str and birthdate_str != 'yyyy/mm/日':
+            try:
+                # 解析 yyyy/mm/日 格式的日期字符串
+                import re
+                match = re.match(r'(\d{4})/(\d{1,2})/(\d{1,2})', birthdate_str)
+                if match:
+                    year, month, day = map(int, match.groups())
+                    from datetime import date
+                    user.birthdate = date(year, month, day)
+            except Exception as e:
+                # 解析失败时设置为 None
+                user.birthdate = None
         else:
             user.birthdate = None
 
@@ -2541,8 +2748,24 @@ def personal_center(request):
         # 重定向到个人中心页面
         return redirect(reverse('ticket:personal_center'))
 
-    # 如果请求方法不是POST，渲染个人中心页面
-    return render(request, 'personal_center.html')
+    # 获取用户收藏的景点
+    favorites = Collection.objects.filter(user=user).select_related('scenic_spot').order_by('-created_at')
+    
+    # 获取用户的浏览历史
+    browse_history = BrowseHistory.objects.filter(user=user).select_related('scenic_spot').order_by('-browse_time')
+    
+    # 获取用户的评论
+    my_comments = ScenicSpotComment.objects.filter(user=user).select_related('scenic_spot').order_by('-created_at')
+    
+    # 构建上下文数据
+    context = {
+        'favorites': favorites,
+        'browse_history': browse_history,
+        'my_comments': my_comments,
+    }
+    
+    # 如果请求方法不是POST，渲染个人中心页面，传递上下文数据
+    return render(request, 'personal_center.html', context)
 
 
 # 修改密码视图函数，需要登录才能访问
@@ -2634,7 +2857,7 @@ def scenic_spots(request):
         spots_with_tags.append(spot)
 
     # 分页处理
-    paginator = Paginator(spots_with_tags, 10)  # 每页显示10个景点
+    paginator = Paginator(spots_with_tags, 9)  # 每页显示9个景点
     try:
         spots_paginated = paginator.page(page)
     except PageNotAnInteger:
@@ -2671,6 +2894,18 @@ def scenic_spot_detail(request, spot_id):
     # 获取该景点的所有留言，按创建时间倒序排列
     comments = ScenicSpotComment.objects.filter(scenic_spot=spot).order_by('-created_at')
     
+    # 记录浏览历史
+    if request.user.is_authenticated:
+        # 检查用户是否已经浏览过该景点
+        browse_history, created = BrowseHistory.objects.get_or_create(
+            user=request.user,
+            scenic_spot=spot
+        )
+        # 如果是已存在的记录，更新浏览时间为当前时间
+        if not created:
+            browse_history.browse_time = timezone.now()
+            browse_history.save()
+    
     # 处理留言提交
     if request.method == 'POST' and request.user.is_authenticated:
         comment_content = request.POST.get('comment_content')
@@ -2690,6 +2925,7 @@ def scenic_spot_detail(request, spot_id):
         'tags_list': tags_list,
         'comments': comments,
     }
+    
     # 渲染scenic_spot_detail.html模板，将景点详情数据传递给模板
     return render(request, 'scenic_spot_detail.html', context)
 
@@ -2800,10 +3036,17 @@ def buy_ticket(request, spot_id):
         from datetime import datetime
         use_date_obj = datetime.strptime(use_date, '%Y-%m-%d').date()
         
-        # 检查库存（暂时使用总库存，后续优化为按日期库存）
-        if ticket_type.stock < quantity:
+        # 获取或创建对应日期的库存记录
+        date_stock, created = DateStock.objects.get_or_create(
+            ticket_type=ticket_type,
+            use_date=use_date_obj,
+            defaults={'stock': ticket_type.stock}  # 使用门票类型的默认库存作为初始值
+        )
+        
+        # 检查该日期的库存是否充足
+        if date_stock.stock < quantity:
             # 库存不足，显示错误信息
-            messages.error(request, f'门票库存不足，当前库存仅剩 {ticket_type.stock} 张')
+            messages.error(request, f'门票库存不足，{use_date} 当日库存仅剩 {date_stock.stock} 张')
             # 返回购票页面时保留用户之前的选择
             return render(request, 'buy_ticket.html', {
                 'spot': spot,
@@ -2838,9 +3081,10 @@ def buy_ticket(request, spot_id):
                     order_number=order_number
                 )
                 
-                # 减少总库存
-                ticket_type.stock -= quantity
-                ticket_type.save()
+                # 减少对应日期的库存
+                date_stock.stock -= quantity
+                date_stock.sold += quantity
+                date_stock.save()
                 
                 # 跳转到支付页面
                 return redirect(reverse('ticket:payment', kwargs={'order_id': order.id}))
@@ -2878,16 +3122,43 @@ def buy_ticket(request, spot_id):
                 messages.error(request, '请先登录')
                 return redirect(reverse('ticket:login'))
     
+        # 获取当前选择的日期，如果没有则使用今天
+    selected_date = selected_use_date if selected_use_date else today.strftime('%Y-%m-%d')
+    
+    # 为每个门票类型获取对应日期的库存数据
+    from datetime import datetime
+    selected_date_obj = datetime.strptime(selected_date, '%Y-%m-%d').date()
+    
+    # 为每个门票类型创建带有日期特定库存的对象
+    single_tickets_with_stock = []
+    package_tickets_with_stock = []
+    
+    for ticket in ticket_types:
+        # 获取对应日期的库存记录
+        date_stock = ticket.datestock_set.filter(use_date=selected_date_obj).first()
+        # 创建带有日期特定库存的门票对象
+        ticket_with_stock = {
+            'ticket': ticket,
+            'stock': date_stock.stock if date_stock else ticket.stock,
+            'is_sold_out': (date_stock.stock <= 0 if date_stock else ticket.stock <= 0)
+        }
+        # 根据门票类型添加到不同列表
+        if ticket.type == 'single':
+            single_tickets_with_stock.append(ticket_with_stock)
+        else:
+            package_tickets_with_stock.append(ticket_with_stock)
+    
     # 渲染buy_ticket.html模板，将景点和门票类型数据传递给模板
     return render(request, 'buy_ticket.html', {
         'spot': spot,
         'ticket_types': ticket_types,
-        'single_tickets': single_tickets,
-        'package_tickets': package_tickets,
+        'single_tickets': single_tickets_with_stock,
+        'package_tickets': package_tickets_with_stock,
         'selected_use_date': selected_use_date,
         'selected_ticket_type': selected_ticket_type,
         'selected_quantity': selected_quantity,
-        'today': today
+        'today': today,
+        'selected_date': selected_date
     })
 
 from .weather_api import get_weather_by_region
@@ -2928,6 +3199,41 @@ def weather_check(request, order_id):
         'order': order,
         'weather_data': weather_data
     })
+
+# AJAX获取门票库存视图函数
+def get_ticket_stocks(request):
+    # 获取请求参数
+    date_str = request.GET.get('date')
+    spot_id = request.GET.get('spot_id')
+    
+    if not date_str or not spot_id:
+        return JsonResponse({'success': False, 'message': '缺少必要参数'})
+    
+    try:
+        from datetime import datetime
+        selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        spot = ScenicSpot.objects.get(id=spot_id)
+        
+        # 获取该景点的所有激活状态的门票类型
+        ticket_types = TicketType.objects.filter(scenic_spot=spot, is_active=True)
+        
+        # 构建库存数据
+        stocks_data = []
+        for ticket in ticket_types:
+            # 获取对应日期的库存记录
+            date_stock = ticket.datestock_set.filter(use_date=selected_date).first()
+            # 如果没有记录，使用门票的默认库存
+            stock = date_stock.stock if date_stock else ticket.stock
+            
+            stocks_data.append({
+                'id': ticket.id,
+                'stock': stock,
+                'is_sold_out': stock <= 0
+            })
+        
+        return JsonResponse({'success': True, 'data': stocks_data})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
 
 # 支付页面视图函数，处理订单支付请求
 # order_id: 订单ID，从URL中获取
@@ -3215,11 +3521,19 @@ def confirm_payment(request):
                     # 模拟支付成功
                     order.status = 1  # 更新订单状态为已支付
                     
-                    # 减少门票库存
-                    if order.ticket_type:
-                        order.ticket_type.stock -= order.quantity
-                        order.ticket_type.save()
-                        print(f"订单 {order.id} 减少库存: {order.quantity}, 剩余库存: {order.ticket_type.stock}")
+                    # 减少对应日期的库存
+                    if order.ticket_type and order.use_date:
+                        # 获取或创建对应日期的库存记录
+                        date_stock, created = DateStock.objects.get_or_create(
+                            ticket_type=order.ticket_type,
+                            use_date=order.use_date,
+                            defaults={'stock': order.ticket_type.stock}
+                        )
+                        # 减少库存并增加已售数量
+                        date_stock.stock -= order.quantity
+                        date_stock.sold += order.quantity
+                        date_stock.save()
+                        print(f"订单 {order.id} 减少 {order.use_date} 库存: {order.quantity}, 剩余库存: {date_stock.stock}")
                     
                     order.save()
                     print(f"订单 {order.id} 支付成功")
@@ -3267,10 +3581,18 @@ def cancel_order(request, order_id):
             
             # 只有待支付订单才能取消
             if order.status == 0:
-                # 恢复门票库存
-                if order.ticket_type:
-                    order.ticket_type.stock += order.quantity
-                    order.ticket_type.save()
+                # 恢复对应日期的库存
+                if order.ticket_type and order.use_date:
+                    # 获取对应日期的库存记录
+                    date_stock = DateStock.objects.filter(
+                        ticket_type=order.ticket_type,
+                        use_date=order.use_date
+                    ).first()
+                    if date_stock:
+                        # 恢复库存并减少已售数量
+                        date_stock.stock += order.quantity
+                        date_stock.sold -= order.quantity
+                        date_stock.save()
                 
                 # 更新订单状态为已取消
                 order.status = 2
@@ -3358,10 +3680,18 @@ def scenic_admin_refund_order(request, order_id):
                 order.refund_audit_time = timezone.now()
                 order.save()
                 
-                # 恢复门票库存
-                if order.ticket_type:
-                    order.ticket_type.stock += order.quantity
-                    order.ticket_type.save()
+                # 恢复对应日期的库存
+                if order.ticket_type and order.use_date:
+                    # 获取对应日期的库存记录
+                    date_stock = DateStock.objects.filter(
+                        ticket_type=order.ticket_type,
+                        use_date=order.use_date
+                    ).first()
+                    if date_stock:
+                        # 恢复库存并减少已售数量
+                        date_stock.stock += order.quantity
+                        date_stock.sold -= order.quantity
+                        date_stock.save()
                 
                 # 显示成功消息
                 messages.success(request, '退款申请已审核通过，订单已退款')

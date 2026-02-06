@@ -74,11 +74,7 @@
         <div class="col-md-2 p-0">
             <div class="sidebar p-3">
                 <ul class="nav nav-pills flex-column">
-                    <li class="nav-item mb-2">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'scenic_admin_index' %}active{% endif %}" href="{% url 'ticket:scenic_admin_index' %}">
-                            <i class="bi bi-speedometer me-2"></i> 控制台
-                        </a>
-                    </li>
+
                     <li class="nav-item mb-2">
                         <a class="nav-link {% if request.resolver_match.url_name == 'scenic_admin_scenic_spots' %}active{% endif %}" href="{% url 'ticket:scenic_admin_scenic_spots' %}">
                             <i class="bi bi-geo-alt me-2"></i> 景点管理

@@ -33,56 +33,54 @@
             <div class="col-md-3">
                 <div class="card">
                     <div class="card-body">
-                        <!-- 按地区筛选 -->
-                        <div class="mb-5">
-                            <h5 class="mb-3">按地区筛选</h5>
-                            <ul class="list-unstyled">
-                                <li class="mb-2">
-                                    <a 
-                                        href="{% url 'ticket:scenic_spots' %}?{% if search_keyword %}search={{ search_keyword }}&{% endif %}{% if category_filter %}category={{ category_filter }}{% endif %}" 
-                                        class="text-decoration-none text-dark {% if not region_filter %}fw-bold{% endif %}"
-                                    >
+                        <form method="get" action="{% url 'ticket:scenic_spots' %}" id="filter-form">
+                            <!-- 隐藏字段，保存搜索关键词 -->
+                            <input type="hidden" name="search" value="{{ search_keyword }}">
+                            
+                            <!-- 按地区筛选 -->
+                            <div class="mb-5">
+                                <h5 class="mb-3">按地区筛选</h5>
+                                <select 
+                                    name="region" 
+                                    class="form-select" 
+                                    onchange="document.getElementById('filter-form').submit();"
+                                >
+                                    <option value="" {% if not region_filter %}selected{% endif %}>
                                         全部地区
-                                    </a>
-                                </li>
-
-                                {% for region in regions %}
-                                <li class="mb-2">
-                                    <a 
-                                        href="{% url 'ticket:scenic_spots' %}?{% if search_keyword %}search={{ search_keyword }}&{% endif %}region={{ region }}{% if category_filter %}&category={{ category_filter }}{% endif %}" 
-                                        class="text-decoration-none text-dark {% if region_filter == region %}fw-bold{% endif %}"
+                                    </option>
+                                    {% for region in regions %}
+                                    <option 
+                                        value="{{ region }}" 
+                                        {% if region_filter == region %}selected{% endif %}
                                     >
                                         {{ region }}
-                                    </a>
-                                </li>
-                                {% endfor %}
-                            </ul>
-                        </div>
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
 
-                        <!-- 按分类筛选 -->
-                        <div>
-                            <h5 class="mb-3">按分类筛选</h5>
-                            <ul class="list-unstyled">
-                                <li class="mb-2">
-                                    <a 
-                                        href="{% url 'ticket:scenic_spots' %}?{% if search_keyword %}search={{ search_keyword }}&{% endif %}{% if region_filter %}region={{ region_filter }}{% endif %}" 
-                                        class="text-decoration-none text-dark {% if not category_filter %}fw-bold{% endif %}"
-                                    >
+                            <!-- 按分类筛选 -->
+                            <div>
+                                <h5 class="mb-3">按分类筛选</h5>
+                                <select 
+                                    name="category" 
+                                    class="form-select" 
+                                    onchange="document.getElementById('filter-form').submit();"
+                                >
+                                    <option value="" {% if not category_filter %}selected{% endif %}>
                                         全部分类
-                                    </a>
-                                </li>
-                                {% for category in categories %}
-                                <li class="mb-2">
-                                    <a 
-                                        href="{% url 'ticket:scenic_spots' %}?{% if search_keyword %}search={{ search_keyword }}&{% endif %}{% if region_filter %}region={{ region_filter }}&{% endif %}category={{ category }}" 
-                                        class="text-decoration-none text-dark {% if category_filter == category %}fw-bold{% endif %}"
+                                    </option>
+                                    {% for category in categories %}
+                                    <option 
+                                        value="{{ category }}" 
+                                        {% if category_filter == category %}selected{% endif %}
                                     >
                                         {{ category }}
-                                    </a>
-                                </li>
-                                {% endfor %}
-                            </ul>
-                        </div>
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>

@@ -17,7 +17,7 @@
                 </div>
                 <div class="col-md-6">
                     <form method="get" action="{% url 'ticket:admin_comment_list' %}" class="input-group">
-                        <input type="text" class="form-control" placeholder="请输入用户名或留言内容搜索" name="search" value="{{ search_keyword }}">
+                        <input type="text" class="form-control" placeholder="请输入用户名或留言内容搜索" name="search" value="{{ search_keyword|default:'' }}">
                         <button class="btn btn-primary" type="submit">搜索</button>
                     </form>
                 </div>
@@ -80,7 +80,7 @@
                         {% if comments.has_previous %}
                         <li class="page-item">
                             <a class="page-link" 
-                               href="?page={{ comments.previous_page_number }}{% if replied_filter %}&replied={{ replied_filter }}{% endif %}{% if search_keyword %}&search={{ search_keyword }}{% endif %}"
+                               href="?page={{ comments.previous_page_number }}{% if replied_filter %}&replied={{ replied_filter }}{% endif %}{% if search_keyword|default:'' %}&search={{ search_keyword }}{% endif %}"
                                aria-label="Previous">
                                 <span aria-hidden="true">&laquo;</span>
                             </a>
@@ -100,7 +100,7 @@
                             {% else %}
                             <li class="page-item">
                                 <a class="page-link" 
-                                   href="?page={{ i }}{% if replied_filter %}&replied={{ replied_filter }}{% endif %}{% if search_keyword %}&search={{ search_keyword }}{% endif %}">
+                                   href="?page={{ i }}{% if replied_filter %}&replied={{ replied_filter }}{% endif %}{% if search_keyword|default:'' %}&search={{ search_keyword }}{% endif %}">
                                     {{ i }}
                                 </a>
                             </li>
@@ -111,7 +111,7 @@
                         {% if comments.has_next %}
                         <li class="page-item">
                             <a class="page-link" 
-                               href="?page={{ comments.next_page_number }}{% if replied_filter %}&replied={{ replied_filter }}{% endif %}{% if search_keyword %}&search={{ search_keyword }}{% endif %}"
+                               href="?page={{ comments.next_page_number }}{% if replied_filter %}&replied={{ replied_filter }}{% endif %}{% if search_keyword|default:'' %}&search={{ search_keyword }}{% endif %}"
                                aria-label="Next">
                                 <span aria-hidden="true">&raquo;</span>
                             </a>

@@ -31,7 +31,7 @@ from django.conf.urls.static import static
 # URL路由列表 - 定义项目的所有URL映射
 urlpatterns = [
     # 将所有URL请求转发到ticket应用的urls.py处理
-    # 空字符串表示根路径，所有请求都会被ticket应用处理
+    # 空字符串表示根路径，所有请求都会被ticket应用处理e
     # 这种配置方式使得ticket应用成为项目的主要应用
     path('', include('ticket.urls')),
     
