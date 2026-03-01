@@ -42,12 +42,12 @@ SECURE_BROWSER_XSS_FILTER = True  # 启用XSS防护
 SECURE_CONTENT_TYPE_NOSNIFF = True  # 防止浏览器猜测内容类型
 SECURE_REFERRER_POLICY = 'same-origin'  # 安全的Referer策略
 
-# Cookie设置 - 允许HTTP传输（开发环境配置）
-CSRF_COOKIE_SECURE = False  # 允许在HTTP下传输CSRF Cookie
-CSRF_COOKIE_HTTPONLY = False  # 允许JavaScript访问CSRF Cookie
+# Cookie设置 - 开发环境配置
+CSRF_COOKIE_SECURE = False  # 开发环境允许在HTTP下传输CSRF Cookie
+CSRF_COOKIE_HTTPONLY = True  # 禁止JavaScript访问CSRF Cookie，提高安全性
 CSRF_COOKIE_SAMESITE = 'Lax'  # 允许跨站请求携带CSRF Cookie
-SESSION_COOKIE_SECURE = False  # 允许在HTTP下传输Session Cookie
-SESSION_COOKIE_HTTPONLY = False  # 允许JavaScript访问Session Cookie
+SESSION_COOKIE_SECURE = False  # 开发环境允许在HTTP下传输Session Cookie
+SESSION_COOKIE_HTTPONLY = True  # 禁止JavaScript访问Session Cookie，提高安全性
 SESSION_COOKIE_SAMESITE = 'Lax'  # 允许跨站请求携带Session Cookie
 
 # CSRF信任的域名列表，用于处理跨域请求

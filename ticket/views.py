@@ -225,10 +225,18 @@ def scenic_admin_edit_scenic_spot(request, spot_id):
             # 更新景点信息
             scenic_spot.name = name
             scenic_spot.description = description
-            scenic_spot.price = float(price)
+            try:
+                scenic_spot.price = float(price)
+            except ValueError:
+                messages.error(request, '价格必须是数字')
+                return render(request, 'scenic_admin/edit_scenic_spot.html', {'scenic_spot': scenic_spot})
             scenic_spot.address = address
             scenic_spot.category = category
-            scenic_spot.total_tickets = int(stock)
+            try:
+                scenic_spot.total_tickets = int(stock)
+            except ValueError:
+                messages.error(request, '库存必须是整数')
+                return render(request, 'scenic_admin/edit_scenic_spot.html', {'scenic_spot': scenic_spot})
             scenic_spot.is_active = status == '1'  # 将status转换为is_active
 
             # 处理图片上传
@@ -275,16 +283,28 @@ def scenic_admin_add_scenic_spot(request):
             return render(request, 'scenic_admin/add_scenic_spot.html')
         
         try:
+            # 验证价格和库存
+            try:
+                price_float = float(price)
+            except ValueError:
+                messages.error(request, '价格必须是数字')
+                return render(request, 'scenic_admin/add_scenic_spot.html')
+            try:
+                stock_int = int(stock)
+            except ValueError:
+                messages.error(request, '库存必须是整数')
+                return render(request, 'scenic_admin/add_scenic_spot.html')
+            
             # 创建新景点，关联到当前管理员
             scenic_spot = ScenicSpot.objects.create(
                 admin=admin,
                 name=name,
                 description=description,
-                price=float(price),
+                price=price_float,
                 image=image,
                 address=address,
                 category=category,
-                total_tickets=int(stock),
+                total_tickets=stock_int,
                 is_active=status == '1',
                 # 设置默认值，因为模板中没有这些字段
                 opening_hours='',
@@ -1290,18 +1310,8 @@ def admin_add_user(request):
             role = '0'
         
         try:
-            # 调试信息
-            print(f"=== 表单提交调试信息 ===")
-            print(f"用户名: {username}")
-            print(f"邮箱: {email}")
-            print(f"角色: {role}")
-            print(f"景点ID: {scenic_spot_id}")
-            print(f"密码: {password}")
-            print(f"确认密码: {confirm_password}")
-            
             # 表单验证
             if not username or not email or not password:
-                print("错误: 用户名、邮箱和密码不能为空")
                 messages.error(request, '用户名、邮箱和密码不能为空')
                 return render(request, 'admin/add_user.html', {'scenic_spots': scenic_spots})
 
@@ -1318,8 +1328,6 @@ def admin_add_user(request):
             if User.objects.filter(email=email).exists():
                 messages.error(request, '邮箱已被注册')
                 return render(request, 'admin/add_user.html', {'scenic_spots': scenic_spots})
-            
-            print(f"最终角色值: {role}")
             
             # 计算下一个连续的用户ID
             # 先获取所有已存在的用户ID
@@ -1344,8 +1352,6 @@ def admin_add_user(request):
                 password=password
             )
             
-            print(f"用户创建成功: {user.username}")
-            
             # 设置用户角色
             user.role = int(role)
             
@@ -1354,7 +1360,9 @@ def admin_add_user(request):
                 # 获取关联的景点
                 try:
                     scenic_spot = ScenicSpot.objects.get(id=scenic_spot_id)
-                    user.managed_scenic_spots.add(scenic_spot)
+                    # 设置景点的管理员为新创建的用户
+                    scenic_spot.admin = user
+                    scenic_spot.save()
                     print(f"关联景点成功: {scenic_spot.name}")
                 except ScenicSpot.DoesNotExist:
                     print(f"景点不存在: {scenic_spot_id}")

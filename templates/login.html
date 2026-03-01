@@ -1,125 +1,265 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header text-center">
-                        <h3>用户登录</h3>
+    <div class="container min-vh-100 d-flex align-items-center justify-content-center py-5">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg rounded-lg overflow-hidden">
+                <!-- 卡片头部 -->
+                <div class="bg-primary text-white py-4">
+                    <div class="container text-center">
+                        <h3 class="mb-1">用户登录</h3>
+                        <p class="text-white-75 small">请输入您的账号信息</p>
                     </div>
-                    <div class="card-body">
-                        <form method="post">
-                            {% csrf_token %}
-                            {% if next %}
-                            <input type="hidden" name="next" value="{{ next }}">
-                            {% endif %}
-                            
-                            <!-- 登录错误信息提示 -->
-                            {% if messages %}
-                            <div class="mb-3">
-                                {% for message in messages %}
-                                <div class="alert alert-danger alert-dismissible fade show" role="alert" style="margin-bottom: 0;">
-                                    {{ message }}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                </div>
-                                {% endfor %}
+                </div>
+                
+                <!-- 卡片主体 -->
+                <div class="card-body p-5">
+                    <form method="post" id="loginForm" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        {% if next %}
+                        <input type="hidden" name="next" value="{{ next }}">
+                        {% endif %}
+                        
+                        <!-- 登录错误信息提示 -->
+                        {% if messages %}
+                        <div class="mb-4">
+                            {% for message in messages %}
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
-                            {% endif %}
-                            
-                            <div class="mb-3">
-                                <label for="username" class="form-label">用户名</label>
-                                <input type="text" class="form-control" id="username" name="username" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="password" class="form-label">密码</label>
-                                <input type="password" class="form-control" id="password" name="password" required>
-                            </div>
-                            
-                            <!-- 角色选择 -->
-                            <div class="mb-3">
-                                <label class="form-label">角色</label>
-                                <div class="d-flex gap-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="role" id="role_visitor" value="0" checked>
-                                        <label class="form-check-label" for="role_visitor">
-                                            游客
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="role" id="role_scenic_admin" value="1">
-                                        <label class="form-check-label" for="role_scenic_admin">
-                                            景点管理员
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="role" id="role_platform_admin" value="2">
-                                        <label class="form-check-label" for="role_platform_admin">
-                                            管理员
-                                        </label>
-                                    </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- 用户名输入 -->
+                        <div class="mb-4">
+                            <label for="username" class="form-label">用户名</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-right-0">
+                                    <i class="bi bi-person text-primary"></i>
+                                </span>
+                                <input type="text" class="form-control border-left-0" id="username" name="username" required placeholder="请输入用户名">
+                                <div class="invalid-feedback">
+                                    请输入用户名
                                 </div>
                             </div>
-                            
-                            <!-- 景点选择（仅景点管理员需要） -->
-                            <div class="mb-3" id="scenic_selector" style="display: none;">
-                                <label for="scenic_spot" class="form-label">景点</label>
-                                <select class="form-select" id="scenic_spot" name="scenic_spot">
+                        </div>
+                        
+                        <!-- 密码输入 -->
+                        <div class="mb-4">
+                            <label for="password" class="form-label">密码</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-right-0">
+                                    <i class="bi bi-lock text-primary"></i>
+                                </span>
+                                <input type="password" class="form-control border-left-0" id="password" name="password" required placeholder="请输入密码">
+                                <button type="button" class="btn btn-outline-secondary border-left-0" id="togglePassword">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <div class="invalid-feedback">
+                                    请输入密码
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 角色选择 -->
+                        <div class="mb-4">
+                            <label class="form-label">角色</label>
+                            <div class="d-flex flex-wrap gap-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="role" id="role_visitor" value="0" checked>
+                                    <label class="form-check-label" for="role_visitor">
+                                        <i class="bi bi-person-fill me-1"></i> 游客
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="role" id="role_scenic_admin" value="1">
+                                    <label class="form-check-label" for="role_scenic_admin">
+                                        <i class="bi bi-building-fill me-1"></i> 景点管理员
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="role" id="role_platform_admin" value="2">
+                                    <label class="form-check-label" for="role_platform_admin">
+                                        <i class="bi bi-person-workspace me-1"></i> 管理员
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 景点选择（仅景点管理员需要） -->
+                        <div class="mb-4" id="scenic_selector" style="display: none; animation: fadeIn 0.3s ease-in-out;">
+                            <label for="scenic_spot" class="form-label">景点</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-right-0">
+                                    <i class="bi bi-geo-alt-fill text-primary"></i>
+                                </span>
+                                <select class="form-select border-left-0" id="scenic_spot" name="scenic_spot">
                                     <option value="">请选择景点</option>
                                     <!-- 这里会通过JavaScript动态加载景点列表 -->
                                 </select>
                             </div>
-                            
-                            <div class="d-grid mb-3">
-                                <button type="submit" class="btn btn-primary">登录</button>
-                            </div>
-                            
-                            <!-- 注册和忘记密码链接 -->
-                            <div class="text-center">
-                                <a href="{% url 'ticket:register' %}" class="me-3">注册新账号</a>
-                                <a href="{% url 'ticket:forgot_password' %}">忘记密码</a>
-                            </div>
-                        </form>
-                    </div>
+                        </div>
+                        
+                        <!-- 记住我选项 -->
+                        <div class="mb-4 form-check">
+                            <input type="checkbox" class="form-check-input" id="remember">
+                            <label class="form-check-label" for="remember">记住我</label>
+                        </div>
+                        
+                        <!-- 登录按钮 -->
+                        <div class="d-grid mb-4">
+                            <button type="submit" class="btn btn-primary btn-lg" id="loginBtn">
+                                <i class="bi bi-box-arrow-in-right me-2"></i> 登录
+                            </button>
+                        </div>
+                        
+                        <!-- 注册和忘记密码链接 -->
+                        <div class="text-center">
+                            <a href="{% url 'ticket:register' %}" class="me-4 text-primary text-decoration-none">
+                                <i class="bi bi-person-plus me-1"></i> 注册新账号
+                            </a>
+                            <a href="{% url 'ticket:forgot_password' %}" class="text-primary text-decoration-none">
+                                <i class="bi bi-key me-1"></i> 忘记密码
+                            </a>
+                        </div>
+                    </form>
                 </div>
+            </div>
+            
+            <!-- 底部提示 -->
+            <div class="text-center mt-4 text-muted small">
+                <p>© 2026 旅游景点门票管理系统</p>
             </div>
         </div>
     </div>
     
-    <script>
-        // 加载景点列表
-        function loadScenicSpots() {
-            fetch('/api/scenic_spots/')
-                .then(response => response.json())
-                .then(data => {
-                    const selectElement = document.getElementById('scenic_spot');
-                    // 清空现有选项（保留第一个占位选项）
-                    selectElement.innerHTML = '<option value="">请选择景点</option>';
-                    // 添加景点选项
-                    data.forEach(spot => {
-                        const option = document.createElement('option');
-                        option.value = spot.id;
-                        option.textContent = spot.name;
-                        selectElement.appendChild(option);
-                    });
-                })
-                .catch(error => console.error('加载景点列表失败:', error));
+    <style>
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
-        // 页面加载时加载景点列表
-        window.addEventListener('load', loadScenicSpots);
+        /* 登录卡片动画 */
+        .card {
+            animation: fadeIn 0.5s ease-in-out;
+        }
         
-        // 角色选择切换时，显示/隐藏景点选择器
-        document.querySelectorAll('input[name="role"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                const scenicSelector = document.getElementById('scenic_selector');
-                if (this.value === '1') {
-                    scenicSelector.style.display = 'block';
-                    // 确保景点列表已加载
-                    loadScenicSpots();
-                } else {
-                    scenicSelector.style.display = 'none';
+        /* 输入框聚焦效果 */
+        .form-control:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+        
+        /* 按钮悬停效果 */
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
+        }
+    </style>
+    
+    <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 表单验证
+            const loginForm = document.getElementById('loginForm');
+            loginForm.addEventListener('submit', function(event) {
+                if (!loginForm.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
                 }
+                loginForm.classList.add('was-validated');
+            });
+            
+            // 密码显示/隐藏切换
+            const togglePassword = document.getElementById('togglePassword');
+            const password = document.getElementById('password');
+            
+            togglePassword.addEventListener('click', function() {
+                const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                password.setAttribute('type', type);
+                
+                // 切换图标
+                const icon = togglePassword.querySelector('i');
+                if (type === 'text') {
+                    icon.classList.remove('bi-eye');
+                    icon.classList.add('bi-eye-slash');
+                } else {
+                    icon.classList.remove('bi-eye-slash');
+                    icon.classList.add('bi-eye');
+                }
+            });
+            
+            // 加载景点列表
+            function loadScenicSpots() {
+                const selectElement = document.getElementById('scenic_spot');
+                // 清空现有选项（保留第一个占位选项）
+                selectElement.innerHTML = '<option value="">请选择景点</option>';
+                
+                // 从API获取景点列表
+                fetch('/api/scenic_spots/')
+                    .then(response => response.json())
+                    .then(data => {
+                        // 添加景点选项
+                        data.forEach(spot => {
+                            const option = document.createElement('option');
+                            option.value = spot.id;
+                            option.textContent = spot.name;
+                            selectElement.appendChild(option);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('加载景点列表失败:', error);
+                        // 添加默认景点选项作为备用
+                        const defaultSpots = [
+                            { id: 1, name: '故宫博物院' },
+                            { id: 2, name: '长城' },
+                            { id: 3, name: '西湖' }
+                        ];
+                        defaultSpots.forEach(spot => {
+                            const option = document.createElement('option');
+                            option.value = spot.id;
+                            option.textContent = spot.name;
+                            selectElement.appendChild(option);
+                        });
+                    });
+            }
+            
+            // 页面加载时加载景点列表
+            loadScenicSpots();
+            
+            // 角色选择切换时，显示/隐藏景点选择器
+            document.querySelectorAll('input[name="role"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const scenicSelector = document.getElementById('scenic_selector');
+                    if (this.value === '1') {
+                        scenicSelector.style.display = 'block';
+                        // 确保景点列表已加载
+                        loadScenicSpots();
+                    } else {
+                        scenicSelector.style.display = 'none';
+                    }
+                });
+            });
+            
+            // 登录按钮点击效果
+            const loginBtn = document.getElementById('loginBtn');
+            loginBtn.addEventListener('click', function() {
+                this.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> 登录中...';
+                this.disabled = true;
+                
+                // 模拟登录延迟
+                setTimeout(() => {
+                    loginForm.submit();
+                }, 500);
             });
         });
     </script>

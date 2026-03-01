@@ -40,7 +40,6 @@ class UserManager(BaseUserManager):
 # 自定义用户模型，继承自AbstractBaseUser，支持三种角色
 class User(AbstractBaseUser):
     # 使用自定义UserManager作为管理器
-    DoesNotExist = None
     objects = UserManager()
     
     # 定义角色选择元组，用于限制角色取值范围
@@ -109,8 +108,6 @@ class Region(models.Model):
 
 # 景点信息模型，存储所有景点的详细信息
 class ScenicSpot(models.Model):
-    DoesNotExist = None
-    
     # 显示ID，用于给用户展示的连续编号
     display_id = models.IntegerField(default=0, verbose_name='显示ID')
     
@@ -292,7 +289,6 @@ class Cart(models.Model):
 # 景点留言模型，存储用户对景点的留言
 class ScenicSpotComment(models.Model):
     # 关联的景点，使用ForeignKey建立一对多关系，景点删除时留言也删除
-    DoesNotExist = None
     scenic_spot = models.ForeignKey(ScenicSpot, on_delete=models.CASCADE, verbose_name='景点')
     # 关联的用户，使用ForeignKey建立一对多关系，用户删除时留言也删除
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户')
@@ -319,7 +315,6 @@ class ScenicSpotComment(models.Model):
 # 订单模型，存储用户的购票订单
 class Order(models.Model):
     # 定义订单状态选择元组，用于限制订单状态取值范围
-    DoesNotExist = None
     STATUS_CHOICES = (
         (0, '待支付'),  # 订单已创建，等待用户支付
         (1, '已支付'),  # 用户已完成支付

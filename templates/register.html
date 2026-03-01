@@ -1,59 +1,238 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header text-center">
-                        <h3>用户注册</h3>
-                    </div>
-                    <div class="card-body">
-                        <form method="post">
-                            {% csrf_token %}
-                            <!-- 用户名输入 -->
-                            <div class="mb-3">
-                                <label for="username" class="form-label">用户名</label>
-                                <input type="text" class="form-control" id="username" name="username" required>
-                            </div>
-                            <!-- 邮箱输入 -->
-                            <div class="mb-3">
-                                <label for="email" class="form-label">邮箱</label>
-                                <input type="email" class="form-control" id="email" name="email" required>
-                            </div>
-                            <!-- 密码输入 -->
-                            <div class="mb-3">
-                                <label for="password" class="form-label">密码</label>
-                                <input type="password" class="form-control" id="password" name="password" required>
-                            </div>
-                            <!-- 确认密码输入 -->
-                            <div class="mb-3">
-                                <label for="confirm_password" class="form-label">确认密码</label>
-                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
-                            </div>
-                            
-                            <!-- 角色选择 -->
-                            <div class="mb-3">
-                                <label class="form-label">用户角色</label>
-                                <div class="d-flex gap-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="role" id="role_visitor" value="0" checked>
-                                        <label class="form-check-label" for="role_visitor">
-                                            游客
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- 注册和返回登录按钮 -->
-                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                                <a href="{% url 'ticket:login' %}" class="btn btn-secondary">返回登录</a>
-                                <button type="submit" class="btn btn-primary">注册</button>
-                            </div>
-                        </form>
+    <div class="container min-vh-100 d-flex align-items-center justify-content-center py-5">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg rounded-lg overflow-hidden">
+                <!-- 卡片头部 -->
+                <div class="bg-primary text-white py-4">
+                    <div class="container text-center">
+                        <h3 class="mb-1">用户注册</h3>
+                        <p class="text-white-75 small">创建您的账号，开始您的旅行之旅</p>
                     </div>
                 </div>
+                
+                <!-- 卡片主体 -->
+                <div class="card-body p-5">
+                    <form method="post" id="registerForm" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- 用户名输入 -->
+                        <div class="mb-4">
+                            <label for="username" class="form-label">用户名</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-right-0">
+                                    <i class="bi bi-person text-primary"></i>
+                                </span>
+                                <input type="text" class="form-control border-left-0" id="username" name="username" required placeholder="请输入用户名">
+                                <div class="invalid-feedback">
+                                    请输入用户名
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 邮箱输入 -->
+                        <div class="mb-4">
+                            <label for="email" class="form-label">邮箱</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-right-0">
+                                    <i class="bi bi-envelope text-primary"></i>
+                                </span>
+                                <input type="email" class="form-control border-left-0" id="email" name="email" required placeholder="请输入邮箱">
+                                <div class="invalid-feedback">
+                                    请输入有效的邮箱地址
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 密码输入 -->
+                        <div class="mb-4">
+                            <label for="password" class="form-label">密码</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-right-0">
+                                    <i class="bi bi-lock text-primary"></i>
+                                </span>
+                                <input type="password" class="form-control border-left-0" id="password" name="password" required placeholder="请输入密码">
+                                <button type="button" class="btn btn-outline-secondary border-left-0" id="togglePassword">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <div class="invalid-feedback">
+                                    请输入密码
+                                </div>
+                            </div>
+                            <div class="mt-2 text-muted small">
+                                <i class="bi bi-info-circle me-1"></i> 密码长度至少8位
+                            </div>
+                        </div>
+                        
+                        <!-- 确认密码输入 -->
+                        <div class="mb-4">
+                            <label for="confirm_password" class="form-label">确认密码</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-right-0">
+                                    <i class="bi bi-lock-fill text-primary"></i>
+                                </span>
+                                <input type="password" class="form-control border-left-0" id="confirm_password" name="confirm_password" required placeholder="请确认密码">
+                                <button type="button" class="btn btn-outline-secondary border-left-0" id="toggleConfirmPassword">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <div class="invalid-feedback">
+                                    两次输入的密码不一致
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 角色选择 -->
+                        <div class="mb-4">
+                            <label class="form-label">用户角色</label>
+                            <div class="d-flex gap-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="role" id="role_visitor" value="0" checked>
+                                    <label class="form-check-label" for="role_visitor">
+                                        <i class="bi bi-person-fill me-1"></i> 游客
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 同意条款 -->
+                        <div class="mb-4 form-check">
+                            <input type="checkbox" class="form-check-input" id="agreeTerms" required>
+                            <label class="form-check-label" for="agreeTerms">
+                                我已阅读并同意 <a href="#" class="text-primary">用户协议</a> 和 <a href="#" class="text-primary">隐私政策</a>
+                            </label>
+                            <div class="invalid-feedback">
+                                请同意用户协议和隐私政策
+                            </div>
+                        </div>
+                        
+                        <!-- 注册和返回登录按钮 -->
+                        <div class="d-grid gap-3 mb-4">
+                            <button type="submit" class="btn btn-primary btn-lg" id="registerBtn">
+                                <i class="bi bi-person-plus me-2"></i> 注册
+                            </button>
+                            <a href="{% url 'ticket:login' %}" class="btn btn-secondary btn-lg">
+                                <i class="bi bi-arrow-left me-2"></i> 返回登录
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- 底部提示 -->
+            <div class="text-center mt-4 text-muted small">
+                <p>© 2026 旅游景点门票管理系统</p>
             </div>
         </div>
     </div>
+
+    <style>
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* 注册卡片动画 */
+        .card {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        /* 输入框聚焦效果 */
+        .form-control:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+        
+        /* 按钮悬停效果 */
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(108, 117, 125, 0.3);
+        }
+    </style>
+
+    <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 表单验证
+            const registerForm = document.getElementById('registerForm');
+            registerForm.addEventListener('submit', function(event) {
+                // 验证密码是否一致
+                const password = document.getElementById('password');
+                const confirmPassword = document.getElementById('confirm_password');
+                if (password.value !== confirmPassword.value) {
+                    confirmPassword.setCustomValidity('两次输入的密码不一致');
+                } else {
+                    confirmPassword.setCustomValidity('');
+                }
+                
+                if (!registerForm.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                registerForm.classList.add('was-validated');
+            });
+            
+            // 密码显示/隐藏切换
+            const togglePassword = document.getElementById('togglePassword');
+            const password = document.getElementById('password');
+            
+            togglePassword.addEventListener('click', function() {
+                const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                password.setAttribute('type', type);
+                
+                // 切换图标
+                const icon = togglePassword.querySelector('i');
+                if (type === 'text') {
+                    icon.classList.remove('bi-eye');
+                    icon.classList.add('bi-eye-slash');
+                } else {
+                    icon.classList.remove('bi-eye-slash');
+                    icon.classList.add('bi-eye');
+                }
+            });
+            
+            // 确认密码显示/隐藏切换
+            const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+            const confirmPassword = document.getElementById('confirm_password');
+            
+            toggleConfirmPassword.addEventListener('click', function() {
+                const type = confirmPassword.getAttribute('type') === 'password' ? 'text' : 'password';
+                confirmPassword.setAttribute('type', type);
+                
+                // 切换图标
+                const icon = toggleConfirmPassword.querySelector('i');
+                if (type === 'text') {
+                    icon.classList.remove('bi-eye');
+                    icon.classList.add('bi-eye-slash');
+                } else {
+                    icon.classList.remove('bi-eye-slash');
+                    icon.classList.add('bi-eye');
+                }
+            });
+            
+            // 注册按钮点击效果
+            const registerBtn = document.getElementById('registerBtn');
+            registerBtn.addEventListener('click', function() {
+                this.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> 注册中...';
+                this.disabled = true;
+                
+                // 模拟注册延迟
+                setTimeout(() => {
+                    registerForm.submit();
+                }, 1000);
+            });
+        });
+    </script>
 {% endblock %}

@@ -3,34 +3,40 @@
 
 {% block content %}
     <!-- 返回按钮 -->
-    <div class="container mt-4">
-        <a href="{% url 'ticket:scenic_spots' %}" class="btn btn-outline-secondary mb-4">
-            <i class="bi bi-arrow-left"></i> 返回景点列表
+    <div class="container mt-6">
+        <a href="{% url 'ticket:scenic_spots' %}" class="btn btn-outline-secondary mb-6 transition-all">
+            <i class="bi bi-arrow-left me-2"></i> 返回景点列表
         </a>
     </div>
 
     <!-- 景点详情容器 -->
     <div class="container">
         <!-- 景点头部：名称、分享、收藏 -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="text-center flex-grow-1">{{ spot.name }}</h1>
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-6">
+            <div class="flex-grow-1 text-center mb-4 mb-md-0">
+                <h1 class="display-5 font-weight-bold">{{ spot.name }}</h1>
+            </div>
             <div class="d-flex gap-3">
                 <!-- 分享图标 -->
-                <button class="btn btn-outline-primary" title="分享">
+                <button class="btn btn-outline-primary transition-all hover-lift" title="分享">
                     <i class="bi bi-share"></i>
                 </button>
                 <!-- 收藏图标 -->
-                <button class="btn btn-outline-danger" title="收藏">
+                <button class="btn btn-outline-danger transition-all hover-lift" title="收藏">
                     <i class="bi bi-heart"></i>
                 </button>
             </div>
         </div>
 
         <!-- 景点图片 -->
-        <div class="mb-5">
-            <div class="card">
+        <div class="mb-8">
+            <div class="card border-0 shadow-lg rounded-lg overflow-hidden">
                 {% if spot.image %}
-                <img src="{{ spot.image.url }}" class="card-img-top" alt="{{ spot.name }}" style="height: 400px; object-fit: cover;">
+                <img src="{{ spot.image.url }}" 
+                     class="card-img-top" 
+                     alt="{{ spot.name }}" 
+                     style="height: 400px; object-fit: cover;"
+                     loading="lazy">
                 {% else %}
                 <div class="card-img-top d-flex justify-content-center align-items-center"
                      style="height: 400px; background-color: #f8f9fa;">
@@ -40,46 +46,110 @@
             </div>
         </div>
 
-        <!-- 景点卡片 -->
-        <div class="row mb-5">
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-body">
+        <!-- 景点信息和购票区域 -->
+        <div class="row mb-8">
+            <!-- 景点详情 -->
+            <div class="col-md-8 mb-6 mb-md-0">
+                <div class="card border-0 shadow-sm rounded-lg">
+                    <div class="card-body p-6">
                         <!-- 评分和基本信息 -->
-                        <div class="d-flex align-items-center mb-4">
-                            <div class="text-warning fs-3 me-3">
-                                <i class="bi bi-star-fill"></i> {{ spot.rating }}
+                        <div class="d-flex flex-wrap align-items-center mb-6">
+                            <div class="text-warning fs-4 me-4 mb-2 mb-md-0">
+                                <i class="bi bi-star-fill"></i> <span class="font-weight-bold">{{ spot.rating }}</span>
                             </div>
-                            <span class="text-muted">{{ spot.booking_count }}人已预约 / 共{{ spot.total_tickets }}张票</span>
+                            <span class="text-muted">
+                                <i class="bi bi-people-fill me-1"></i> {{ spot.booking_count }}人已预约 / 
+                                <i class="bi bi-ticket-perforated me-1"></i> 共{{ spot.total_tickets }}张票
+                            </span>
                         </div>
 
-                        <!-- 景点名称 -->
-                        <h2 class="card-title mb-3">{{ spot.name }}</h2>
-
-                        <!-- 地点 -->
-                        <p class="card-text mb-3">
-                            <strong>地点：</strong>
-                            <i class="bi bi-geo-alt-fill text-primary"></i> {{ spot.address }}
-                        </p>
-
-                        <!-- 标签 -->
-                        <div class="mb-3">
-                            <strong>标签：</strong>
-                            {% for tag in tags_list %}
-                                <span class="badge bg-primary me-1">{{ tag }}</span>
-                            {% endfor %}
+                        <!-- 景点标签 -->
+                        <div class="mb-6">
+                            <strong class="d-block mb-2">标签：</strong>
+                            <div class="flex-wrap d-flex gap-2">
+                                {% for tag in tags_list %}
+                                    <span class="badge bg-primary hover-lift">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
                         </div>
 
-                        <!-- 开放时间 -->
-                        <p class="card-text mb-3">
-                            <strong>开放时间：</strong>
-                            <i class="bi bi-clock-fill text-success"></i> {{ spot.opening_hours }}
-                        </p>
+                        <!-- 基本信息 -->
+                        <div class="mb-6">
+                            <!-- 地点 -->
+                            <p class="card-text mb-4">
+                                <strong class="d-block mb-1">地点：</strong>
+                                <i class="bi bi-geo-alt-fill text-primary me-2"></i> {{ spot.address }}
+                            </p>
+
+                            <!-- 开放时间 -->
+                            <p class="card-text mb-4">
+                                <strong class="d-block mb-1">开放时间：</strong>
+                                <i class="bi bi-clock-fill text-success me-2"></i> {{ spot.opening_hours }}
+                            </p>
+
+                            <!-- 分类 -->
+                            <p class="card-text">
+                                <strong class="d-block mb-1">分类：</strong>
+                                <i class="bi bi-tag-fill text-info me-2"></i> {{ spot.category }}
+                            </p>
+                        </div>
 
                         <!-- 景点描述 -->
-                        <div class="mt-4">
-                            <h3>景点介绍</h3>
-                            <p class="mt-2">{{ spot.description }}</p>
+                        <div class="mt-8">
+                            <h3 class="h4 font-weight-bold mb-4">景点介绍</h3>
+                            <div class="text-muted leading-relaxed">
+                                {{ spot.description }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 购票侧边栏 -->
+            <div class="col-md-4">
+                <div class="card border-0 shadow-lg rounded-lg sticky-top" style="top: 2rem;">
+                    <div class="card-body p-6">
+                        <h3 class="h4 font-weight-bold mb-4">门票信息</h3>
+                        
+                        <!-- 价格信息 -->
+                        <div class="mb-6">
+                            <div class="d-flex justify-content-between align-items-end mb-2">
+                                <span class="text-muted">门票价格</span>
+                                <span class="text-danger fs-3 font-weight-bold">¥{{ spot.price }}</span>
+                            </div>
+                            <div class="text-muted small">
+                                <i class="bi bi-info-circle me-1"></i> 价格包含景区首道门票
+                            </div>
+                        </div>
+
+                        <!-- 购票须知 -->
+                        <div class="mb-6">
+                            <h4 class="h6 font-weight-bold mb-3">购票须知</h4>
+                            <ul class="list-unstyled text-muted small space-y-2">
+                                <li class="d-flex align-items-start">
+                                    <i class="bi bi-check-circle text-success mt-1 me-2"></i>
+                                    <span>需至少提前1天预订</span>
+                                </li>
+                                <li class="d-flex align-items-start">
+                                    <i class="bi bi-check-circle text-success mt-1 me-2"></i>
+                                    <span>凭电子票入园</span>
+                                </li>
+                                <li class="d-flex align-items-start">
+                                    <i class="bi bi-check-circle text-success mt-1 me-2"></i>
+                                    <span>有效期：仅限选定日期使用</span>
+                                </li>
+                                <li class="d-flex align-items-start">
+                                    <i class="bi bi-check-circle text-success mt-1 me-2"></i>
+                                    <span>支持随时退款</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- 购票按钮 -->
+                        <div class="d-grid">
+                            <a href="{% url 'ticket:buy_ticket' spot_id=spot.id %}" class="btn btn-primary btn-lg transition-all hover-lift">
+                                <i class="bi bi-ticket-perforated me-2"></i> 立即购票
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -87,90 +157,277 @@
         </div>
 
         <!-- 留言区 -->
-        <div class="mb-5">
-            <h3>用户留言</h3>
+        <div class="mb-10">
+            <h3 class="h4 font-weight-bold mb-6">用户留言</h3>
             
             <!-- 发表留言表单 -->
             {% if user.is_authenticated %}
-                <div class="card mt-3">
-                    <div class="card-body">
-                        <h5 class="card-title mb-3">发表留言</h5>
-                        <form method="post" action="#">
+                <div class="card border-0 shadow-sm rounded-lg mb-6">
+                    <div class="card-body p-6">
+                        <h5 class="card-title mb-4">发表留言</h5>
+                        <form method="post" action="#" id="commentForm" class="needs-validation" novalidate>
                             {% csrf_token %}
-                            <div class="mb-3">
-                                <textarea class="form-control" rows="3" name="comment_content" placeholder="请输入您的留言内容..." required></textarea>
+                            <div class="mb-4">
+                                <textarea class="form-control" rows="4" name="comment_content" placeholder="请输入您的留言内容..." required></textarea>
+                                <div class="invalid-feedback">
+                                    请输入留言内容
+                                </div>
                             </div>
-                            <button type="submit" class="btn btn-primary">提交留言</button>
+                            <button type="submit" class="btn btn-primary transition-all hover-lift" id="submitComment">
+                                <i class="bi bi-send me-2"></i> 提交留言
+                            </button>
                         </form>
                     </div>
                 </div>
             {% else %}
-                <div class="alert alert-info mt-3" role="alert">
-                    <i class="bi bi-info-circle"></i> 请先 <a href="{% url 'ticket:login' %}" class="alert-link">登录</a> 后再发表留言
+                <div class="alert alert-info mb-6" role="alert">
+                    <i class="bi bi-info-circle me-2"></i> 请先 <a href="{% url 'ticket:login' %}" class="alert-link">登录</a> 后再发表留言
                 </div>
             {% endif %}
             
             <!-- 留言列表 -->
-            <div class="card mt-3">
-                <div class="card-body">
+            <div class="card border-0 shadow-sm rounded-lg">
+                <div class="card-body p-6">
                     {% if comments.exists %}
                         {% for comment in comments %}
-                            <div class="media mb-4">
-                                <!-- 用户头像 -->
-                                <img src="{% if comment.user.avatar %}{{ comment.user.avatar.url }}{% else %}/static/default_avatar.jpg{% endif %}" 
-                                     class="mr-3 rounded-circle" 
-                                     alt="{{ comment.user.username }}" 
-                                     style="width: 50px; height: 50px; object-fit: cover;">
-                                <div class="media-body ms-3">
-                                    <!-- 用户名和时间 -->
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <h5 class="mt-0">{{ comment.user.username }}</h5>
-                                        <div class="d-flex align-items-center">
-                                            {% if comment.is_replied %}
-                                                <span class="badge bg-success me-2">已回复</span>
-                                            {% else %}
-                                                <span class="badge bg-warning text-dark me-2">未回复</span>
-                                            {% endif %}
-                                            <small class="text-muted">{{ comment.created_at|date:'Y-m-d H:i' }}</small>
-                                        </div>
-                                    </div>
-                                    <!-- 留言内容 -->
-                                    <p class="mb-2">{{ comment.content }}</p>
+                            <div class="comment-item mb-6 animate-fade-in">
+                                <!-- 用户头像和信息 -->
+                                <div class="d-flex gap-4">
+                                    <!-- 用户头像 -->
+                                    <img src="{% if comment.user.avatar %}{{ comment.user.avatar.url }}{% else %}/static/default_avatar.jpg{% endif %}" 
+                                         class="rounded-circle" 
+                                         alt="{{ comment.user.username }}" 
+                                         style="width: 60px; height: 60px; object-fit: cover;">
                                     
-                                    <!-- 回复内容 -->
-                                    {% if comment.reply %}
-                                        <div class="bg-light p-3 rounded mt-2 border-left border-primary">
-                                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                                <small class="font-weight-bold text-primary">管理员回复</small>
-                                                <small class="text-muted">{{ comment.reply_time|date:'Y-m-d H:i' }}</small>
+                                    <!-- 留言内容 -->
+                                    <div class="flex-grow-1">
+                                        <!-- 用户名和时间 -->
+                                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+                                            <h5 class="font-weight-bold mb-0">{{ comment.user.username }}</h5>
+                                            <div class="d-flex align-items-center gap-2">
+                                                {% if comment.is_replied %}
+                                                    <span class="badge bg-success">已回复</span>
+                                                {% else %}
+                                                    <span class="badge bg-warning text-dark">未回复</span>
+                                                {% endif %}
+                                                <small class="text-muted">{{ comment.created_at|date:'Y-m-d H:i' }}</small>
                                             </div>
-                                            <p class="mb-0">{{ comment.reply }}</p>
                                         </div>
-                                    {% endif %}
+                                        
+                                        <!-- 留言内容 -->
+                                        <p class="text-muted mb-3">{{ comment.content }}</p>
+                                        
+                                        <!-- 回复内容 -->
+                                        {% if comment.reply %}
+                                            <div class="bg-light p-4 rounded-lg mt-3 border-left-4 border-primary">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <small class="font-weight-bold text-primary">管理员回复</small>
+                                                    <small class="text-muted">{{ comment.reply_time|date:'Y-m-d H:i' }}</small>
+                                                </div>
+                                                <p class="text-muted mb-0">{{ comment.reply }}</p>
+                                            </div>
+                                        {% endif %}
+                                    </div>
                                 </div>
+                                
+                                {% if not forloop.last %}
+                                    <hr class="my-6">
+                                {% endif %}
                             </div>
-                            {% if not forloop.last %}
-                                <hr>
-                            {% endif %}
                         {% endfor %}
                     {% else %}
-                        <p class="text-center text-muted">暂无留言，快来发表您的看法吧！</p>
+                        <div class="text-center py-10">
+                            <i class="bi bi-chat-dots text-muted fs-5 mb-3"></i>
+                            <p class="text-muted">暂无留言，快来发表您的看法吧！</p>
+                        </div>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 漂浮购票按钮 -->
-    <div class="fixed-bottom mb-5 me-5 d-flex justify-content-end">
-        <div class="bg-white p-3 rounded-3 shadow-lg d-flex align-items-center gap-3">
-            <div>
-                <p class="mb-0"><small>门票价格</small></p>
-                <p class="text-danger fs-2 mb-0">¥{{ spot.price }}</p>
-            </div>
-            <div>
-                <a href="{% url 'ticket:buy_ticket' spot_id=spot.id %}" class="btn btn-primary btn-lg">立即购票</a>
-            </div>
-        </div>
-    </div>
+    <style>
+        /* 自定义样式 */
+        .mt-6 {
+            margin-top: 3rem;
+        }
+        
+        .mb-6 {
+            margin-bottom: 3rem;
+        }
+        
+        .mb-8 {
+            margin-bottom: 4rem;
+        }
+        
+        .mb-10 {
+            margin-bottom: 5rem;
+        }
+        
+        .py-10 {
+            padding-top: 5rem;
+            padding-bottom: 5rem;
+        }
+        
+        .p-6 {
+            padding: 1.5rem;
+        }
+        
+        .space-y-2 > * + * {
+            margin-top: 0.5rem;
+        }
+        
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .leading-relaxed {
+            line-height: 1.7;
+        }
+        
+        .border-left-4 {
+            border-left-width: 4px;
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .mt-6 {
+                margin-top: 2rem;
+            }
+            
+            .mb-6 {
+                margin-bottom: 2rem;
+            }
+            
+            .mb-8 {
+                margin-bottom: 3rem;
+            }
+            
+            .p-6 {
+                padding: 1.25rem;
+            }
+            
+            h1.display-5 {
+                font-size: 1.75rem;
+            }
+        }
+    </style>
+
+    <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 表单验证
+            const commentForm = document.getElementById('commentForm');
+            if (commentForm) {
+                commentForm.addEventListener('submit', function(event) {
+                    if (!commentForm.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    commentForm.classList.add('was-validated');
+                });
+            }
+            
+            // 提交留言按钮效果
+            const submitComment = document.getElementById('submitComment');
+            if (submitComment) {
+                submitComment.addEventListener('click', function() {
+                    this.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> 提交中...';
+                    this.disabled = true;
+                });
+            }
+            
+            // 平滑滚动
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+            
+            // 图片懒加载
+            const lazyImages = document.querySelectorAll('img[loading="lazy"]');
+            if ('IntersectionObserver' in window) {
+                const imageObserver = new IntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const image = entry.target;
+                            image.src = image.src;
+                            imageObserver.unobserve(image);
+                        }
+                    });
+                });
+                
+                lazyImages.forEach(image => {
+                    imageObserver.observe(image);
+                });
+            }
+            
+            // 分享功能
+            const shareBtn = document.querySelector('.btn-outline-primary');
+            if (shareBtn) {
+                shareBtn.addEventListener('click', function() {
+                    if (navigator.share) {
+                        navigator.share({
+                            title: '{{ spot.name }}',
+                            text: '{{ spot.description|truncatechars:100 }}',
+                            url: window.location.href
+                        });
+                    } else {
+                        // 复制链接到剪贴板
+                        navigator.clipboard.writeText(window.location.href).then(() => {
+                            alert('链接已复制到剪贴板');
+                        });
+                    }
+                });
+            }
+            
+            // 收藏功能
+            const favoriteBtn = document.querySelector('.btn-outline-danger');
+            if (favoriteBtn) {
+                favoriteBtn.addEventListener('click', function() {
+                    const icon = this.querySelector('i');
+                    if (icon.classList.contains('bi-heart')) {
+                        icon.classList.remove('bi-heart');
+                        icon.classList.add('bi-heart-fill');
+                        this.classList.add('btn-danger');
+                        this.classList.remove('btn-outline-danger');
+                        alert('已收藏该景点');
+                    } else {
+                        icon.classList.remove('bi-heart-fill');
+                        icon.classList.add('bi-heart');
+                        this.classList.remove('btn-danger');
+                        this.classList.add('btn-outline-danger');
+                        alert('已取消收藏');
+                    }
+                });
+            }
+        });
+    </script>
 {% endblock %}
