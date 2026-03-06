@@ -5,19 +5,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c79303bd-5bde-48b8-8bbb-6393a359e365" name="更改" comment="完善细节">
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/travel_ticket_system.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/travel_ticket_system.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/django_extensions/js/jquery.bgiframe.js" beforeDir="false" afterPath="$PROJECT_DIR$/static/django_extensions/js/jquery.bgiframe.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/base.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/login.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/login.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/register.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/register.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/scenic_spot_detail.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/scenic_spot_detail.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/media/scenic_spots/屏幕截图_2025-12-17_094957.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/media/scenic_spots/深度学习中的正则化.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/admin/order_list.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/admin/order_list.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/order_center.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/order_center.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/order_list.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/order_list.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/reset_password.html" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/ticket/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/ticket/models.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ticket/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/ticket/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/travel_ticket_system/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/travel_ticket_system/settings.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -68,7 +64,7 @@
     &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
     &quot;django.template.preview.state&quot;: &quot;SHOW_EDITOR&quot;,
     &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/PyCharmwork/travel_ticket_system&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/PyCharmwork/travel_ticket_system/media&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.stylelint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
@@ -82,8 +78,12 @@
 }</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\PyCharmwork\travel_ticket_system\media" />
       <recent name="D:\PyCharmwork\travel_ticket_system" />
       <recent name="D:\PyCharmwork\travel_ticket_system\static\carousel" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\PyCharmwork\travel_ticket_system" />
     </key>
   </component>
   <component name="RunManager" selected="Django 服务器.travel_ticket_system">
@@ -172,7 +172,9 @@
       <workItem from="1770012217503" duration="1372000" />
       <workItem from="1770278083208" duration="556000" />
       <workItem from="1770344096744" duration="3057000" />
-      <workItem from="1772342973485" duration="2847000" />
+      <workItem from="1772342973485" duration="4599000" />
+      <workItem from="1772593088602" duration="7416000" />
+      <workItem from="1772710549645" duration="2606000" />
     </task>
     <task id="LOCAL-00001" summary="首页 景点信息 大概框架">
       <option name="closed" value="true" />
@@ -238,7 +240,23 @@
       <option name="project" value="LOCAL" />
       <updated>1770346168071</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="完善细节">
+      <option name="closed" value="true" />
+      <created>1772346928728</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1772346928728</updated>
+    </task>
+    <task id="LOCAL-00010" summary="完善细节">
+      <option name="closed" value="true" />
+      <created>1772346940325</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1772346940325</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

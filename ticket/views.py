@@ -1576,8 +1576,23 @@ def admin_add_category(request):
             return render(request, 'admin/add_category.html')
 
         try:
-            # 创建分类
+            # 计算下一个连续的分类ID
+            # 先获取所有已存在的分类ID
+            existing_ids = Category.objects.values_list('id', flat=True).order_by('id')
+            # 如果没有现有分类，直接使用ID=1
+            if not existing_ids:
+                next_id = 1
+            else:
+                # 查找最小的空缺ID
+                next_id = 1
+                for id in existing_ids:
+                    if id == next_id:
+                        next_id += 1
+                    else:
+                        break
+            # 创建分类，指定连续的ID
             Category.objects.create(
+                id=next_id,
                 name=name,
                 description=description
             )
@@ -1701,8 +1716,8 @@ def admin_region_list(request):
     # 获取当前页码，默认为1
     page = request.GET.get('page', 1)
 
-    # 基础查询集
-    regions = Region.objects.all()
+    # 基础查询集，按ID大小排序
+    regions = Region.objects.order_by('id')
 
     # 根据搜索关键词筛选地区
     if search_keyword:
@@ -1744,8 +1759,23 @@ def admin_add_region(request):
             return render(request, 'admin/add_region.html')
 
         try:
-            # 创建地区
+            # 计算下一个连续的地区ID
+            # 先获取所有已存在的地区ID
+            existing_ids = Region.objects.values_list('id', flat=True).order_by('id')
+            # 如果没有现有地区，直接使用ID=1
+            if not existing_ids:
+                next_id = 1
+            else:
+                # 查找最小的空缺ID
+                next_id = 1
+                for id in existing_ids:
+                    if id == next_id:
+                        next_id += 1
+                    else:
+                        break
+            # 创建地区，指定连续的ID
             Region.objects.create(
+                id=next_id,
                 name=name
             )
             messages.success(request, '地区添加成功')
@@ -2838,19 +2868,24 @@ def scenic_spots(request):
 
     # 根据地区筛选
     if region_filter and region_filter != '全部地区':
-        # 尝试将region_filter转换为整数ID，如果失败则按名称筛选
-        try:
-            region_id = int(region_filter)
-            spots = spots.filter(region_id=region_id)
-        except ValueError:
-            spots = spots.filter(region__name=region_filter)
+        # 按省份名称筛选
+        spots = spots.filter(region__name=region_filter)
 
     # 根据分类筛选
     if category_filter and category_filter != '全部分类':
         spots = spots.filter(category=category_filter)
 
-    # 获取所有地区（用于筛选）
-    regions = Region.objects.values_list('name', flat=True).distinct().order_by('name')
+    # 获取所有地区（用于筛选），只显示省份数据
+    provinces = [
+        '北京市', '天津市', '河北省', '山西省', '内蒙古自治区',
+        '辽宁省', '吉林省', '黑龙江省', '上海市', '江苏省',
+        '浙江省', '安徽省', '福建省', '江西省', '山东省',
+        '河南省', '湖北省', '湖南省', '广东省', '广西壮族自治区',
+        '海南省', '重庆市', '四川省', '贵州省', '云南省',
+        '西藏自治区', '陕西省', '甘肃省', '青海省', '宁夏回族自治区',
+        '新疆维吾尔自治区', '香港特别行政区', '澳门特别行政区', '台湾省'
+    ]
+    regions = sorted(provinces)
     # 获取所有分类（用于筛选）
     # 从Category模型获取分类列表，确保分类名称完整
     categories = Category.objects.values_list('name', flat=True).distinct().order_by('name')
@@ -3528,6 +3563,12 @@ def confirm_payment(request):
                 if order.status == 0:
                     # 模拟支付成功
                     order.status = 1  # 更新订单状态为已支付
+                    # 更新支付相关字段
+                    order.payment_method = payment_method
+                    order.payment_time = timezone.now()
+                    # 生成支付流水号
+                    import uuid
+                    order.payment_serial = f"PAY{order.order_number}{str(uuid.uuid4())[:8].upper()}"
                     
                     # 减少对应日期的库存
                     if order.ticket_type and order.use_date:

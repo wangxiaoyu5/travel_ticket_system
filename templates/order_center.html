@@ -23,19 +23,14 @@
             color: #0d6efd !important;
         }
         
-        /* 已完成 */
-        ul.nav-tabs > li.nav-item > button.nav-link#completed-tab {
-            color: #198754 !important;
-        }
-        
         /* 已退款 */
         ul.nav-tabs > li.nav-item > button.nav-link#refunded-tab {
             color: #0dcaf0 !important;
         }
         
-        /* 已取消 */
-        ul.nav-tabs > li.nav-item > button.nav-link#cancelled-tab {
-            color: #dc3545 !important;
+        /* 退款审核中 */
+        ul.nav-tabs > li.nav-item > button.nav-link#refunding-tab {
+            color: #fd7e14 !important;
         }
         
         /* 激活状态的标签 - 保持与标签本身颜色一致 */
@@ -54,18 +49,13 @@
             font-weight: 600 !important;
         }
         
-        ul.nav-tabs > li.nav-item > button.nav-link#completed-tab.active {
-            color: #198754 !important;
-            font-weight: 600 !important;
-        }
-        
         ul.nav-tabs > li.nav-item > button.nav-link#refunded-tab.active {
             color: #0dcaf0 !important;
             font-weight: 600 !important;
         }
         
-        ul.nav-tabs > li.nav-item > button.nav-link#cancelled-tab.active {
-            color: #dc3545 !important;
+        ul.nav-tabs > li.nav-item > button.nav-link#refunding-tab.active {
+            color: #fd7e14 !important;
             font-weight: 600 !important;
         }
     </style>
@@ -82,15 +72,52 @@
                 <button class="nav-link" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming" type="button" role="tab" aria-controls="upcoming" aria-selected="false">待出行</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="completed-tab" data-bs-toggle="tab" data-bs-target="#completed" type="button" role="tab" aria-controls="completed" aria-selected="false">已完成</button>
-            </li>
-            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="refunded-tab" data-bs-toggle="tab" data-bs-target="#refunded" type="button" role="tab" aria-controls="refunded" aria-selected="false">已退款</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="cancelled-tab" data-bs-toggle="tab" data-bs-target="#cancelled" type="button" role="tab" aria-controls="cancelled" aria-selected="false">已取消</button>
+                <button class="nav-link" id="refunding-tab" data-bs-toggle="tab" data-bs-target="#refunding" type="button" role="tab" aria-controls="refunding" aria-selected="false">退款审核中</button>
             </li>
         </ul>
+        <script>
+            // 页面加载时，根据URL参数激活对应的标签页
+            document.addEventListener('DOMContentLoaded', function() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const activeTab = urlParams.get('tab');
+                
+                if (activeTab) {
+                    // 移除所有标签页的激活状态
+                    document.querySelectorAll('.nav-link').forEach(link => {
+                        link.classList.remove('active');
+                        link.setAttribute('aria-selected', 'false');
+                    });
+                    
+                    // 移除所有标签页内容的激活状态
+                    document.querySelectorAll('.tab-pane').forEach(pane => {
+                        pane.classList.remove('show', 'active');
+                    });
+                    
+                    // 激活指定的标签页
+                    const tabLink = document.getElementById(`${activeTab}-tab`);
+                    const tabPane = document.getElementById(activeTab);
+                    
+                    if (tabLink && tabPane) {
+                        tabLink.classList.add('active');
+                        tabLink.setAttribute('aria-selected', 'true');
+                        tabPane.classList.add('show', 'active');
+                    }
+                }
+                
+                // 监听标签页切换事件，更新URL参数
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.addEventListener('click', function() {
+                        const tabId = this.id.replace('-tab', '');
+                        const url = new URL(window.location);
+                        url.searchParams.set('tab', tabId);
+                        window.history.pushState({}, '', url);
+                    });
+                });
+            });
+        </script>
         <div class="tab-content mt-4" id="orderTabsContent">
             <!-- 全部订单 -->
             <div class="tab-pane fade show active" id="all" role="tabpanel" aria-labelledby="all-tab">
@@ -104,17 +131,13 @@
             <div class="tab-pane fade" id="upcoming" role="tabpanel" aria-labelledby="upcoming-tab">
                 {% include 'order_list.html' with orders=orders status_filter=1 %}
             </div>
-            <!-- 已完成订单 -->
-            <div class="tab-pane fade" id="completed" role="tabpanel" aria-labelledby="completed-tab">
-                {% include 'order_list.html' with orders=orders status_filter=3 %}
+            <!-- 退款审核中订单 -->
+            <div class="tab-pane fade" id="refunding" role="tabpanel" aria-labelledby="refunding-tab">
+                {% include 'order_list.html' with orders=orders status_filter=5 %}
             </div>
             <!-- 已退款订单 -->
             <div class="tab-pane fade" id="refunded" role="tabpanel" aria-labelledby="refunded-tab">
                 {% include 'order_list.html' with orders=orders status_filter=4 %}
-            </div>
-            <!-- 已取消订单 -->
-            <div class="tab-pane fade" id="cancelled" role="tabpanel" aria-labelledby="cancelled-tab">
-                {% include 'order_list.html' with orders=orders status_filter=2 %}
             </div>
         </div>
     </div>

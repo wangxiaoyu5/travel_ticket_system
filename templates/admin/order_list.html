@@ -122,9 +122,15 @@
                                                 <div class="col-md-6">
                                                     <h6>支付信息</h6>
                                                     <ul class="list-unstyled">
-                                                        <li><strong>支付方式：</strong>{{ order.payment_method|default:"未支付" }}</li>
-                                                        <li><strong>支付时间：</strong>{{ order.payment_time|date:"Y-m-d H:i:s"|default:"未支付" }}</li>
-                                                        <li><strong>支付流水号：</strong>{{ order.payment_serial|default:"未支付" }}</li>
+                                                        {% if order.status == 0 %}
+                                                        <li><strong>支付方式：</strong>未支付</li>
+                                                        <li><strong>支付时间：</strong>未支付</li>
+                                                        <li><strong>支付流水号：</strong>未支付</li>
+                                                        {% else %}
+                                                        <li><strong>支付方式：</strong>{{ order.payment_method|default:"支付宝" }}</li>
+                                                        <li><strong>支付时间：</strong>{{ order.payment_time|date:"Y-m-d H:i:s"|default:"-" }}</li>
+                                                        <li><strong>支付流水号：</strong>{{ order.payment_serial|default:"-" }}</li>
+                                                        {% endif %}
                                                     </ul>
                                                 </div>
                                             </div>

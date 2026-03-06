@@ -349,6 +349,12 @@ class Order(models.Model):
     refund_audit_time = models.DateTimeField(null=True, blank=True, verbose_name='退款审核时间')
     # 退款金额，使用DecimalField存储，最大10位数字，2位小数，允许为空
     refund_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='退款金额')
+    # 支付方式，使用CharField存储，允许为空
+    payment_method = models.CharField(max_length=50, null=True, blank=True, verbose_name='支付方式')
+    # 支付时间，使用DateTimeField存储，允许为空
+    payment_time = models.DateTimeField(null=True, blank=True, verbose_name='支付时间')
+    # 支付流水号，使用CharField存储，允许为空
+    payment_serial = models.CharField(max_length=100, null=True, blank=True, verbose_name='支付流水号')
     # 创建时间，使用DateTimeField存储，自动添加当前时间
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     # 更新时间，使用DateTimeField存储，自动更新为当前时间
