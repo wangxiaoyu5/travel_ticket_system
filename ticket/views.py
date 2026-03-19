@@ -2863,8 +2863,21 @@ def scenic_spots(request):
 
     # 根据搜索关键词筛选
     if search_keyword:
-        spots = spots.filter(name__icontains=search_keyword) | spots.filter(
-            address__icontains=search_keyword) | spots.filter(region__name__icontains=search_keyword)
+        # 使用Q对象进行更精确的搜索，确保结果更相关
+        from django.db.models import Q
+        # 只匹配景点名称和地区名称，不匹配地址
+        spots = spots.filter(
+            Q(name__icontains=search_keyword) | 
+            Q(region__name__icontains=search_keyword)
+        )
+        # 按相关性排序：名称匹配的排在前面
+        spots = spots.annotate(
+            name_match=models.Case(
+                models.When(name__icontains=search_keyword, then=1),
+                default=0,
+                output_field=models.IntegerField()
+            )
+        ).order_by('-name_match', '-created_at')
 
     # 根据地区筛选
     if region_filter and region_filter != '全部地区':
@@ -2890,23 +2903,21 @@ def scenic_spots(request):
     # 从Category模型获取分类列表，确保分类名称完整
     categories = Category.objects.values_list('name', flat=True).distinct().order_by('name')
 
-    # 预处理景点数据，将tags转换为列表
-    spots_with_tags = []
-    for spot in spots:
-        # 将tags字符串分割为列表
-        tags_list = [tag.strip() for tag in spot.tags.split(',') if tag.strip()]
-        # 将处理后的tags列表添加到spot对象中
-        spot.tags_list = tags_list
-        spots_with_tags.append(spot)
-
-    # 分页处理
-    paginator = Paginator(spots_with_tags, 9)  # 每页显示9个景点
+    # 分页处理（在数据库层面进行分页，提高性能）
+    paginator = Paginator(spots, 9)  # 每页显示9个景点
     try:
         spots_paginated = paginator.page(page)
     except PageNotAnInteger:
         spots_paginated = paginator.page(1)
     except EmptyPage:
         spots_paginated = paginator.page(paginator.num_pages)
+
+    # 预处理分页后的景点数据，将tags转换为列表
+    for spot in spots_paginated:
+        # 将tags字符串分割为列表
+        tags_list = [tag.strip() for tag in spot.tags.split(',') if tag.strip()]
+        # 将处理后的tags列表添加到spot对象中
+        spot.tags_list = tags_list
 
     # 构建上下文
     context = {
