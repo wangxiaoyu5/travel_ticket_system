@@ -88,6 +88,9 @@ urlpatterns = [
     # 获取门票库存API：/api/get_ticket_stocks/ 映射到views.get_ticket_stocks视图函数
     path('api/get_ticket_stocks/', views.get_ticket_stocks, name='get_ticket_stocks'),
     
+    # 收藏景点URL：/add_favorite/[景点ID]/ 映射到views.add_favorite视图函数
+    path('add_favorite/<int:spot_id>/', views.add_favorite, name='add_favorite'),
+    
     # 景点管理员后台URL
     # 景点管理景点信息管理
     path('scenic_admin/scenic_spots/', views.scenic_admin_scenic_spots, name='scenic_admin_scenic_spots'),

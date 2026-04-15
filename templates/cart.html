@@ -17,7 +17,7 @@
         {% endif %}
         <div class="card mt-4">
             <div class="card-body">
-                <form method="post">
+                <form method="post" id="purchaseForm">
                     {% csrf_token %}
                     <table class="table">
                         <thead>
@@ -55,19 +55,13 @@
                                         <td>
                                             <div class="btn-group-vertical" role="group" style="gap: 5px;">
                                                 <!-- 移入收藏按钮 -->
-                                                <form method="post" action="{% url 'ticket:add_to_collection' item.id %}" class="m-0">
-                                                    {% csrf_token %}
-                                                    <button type="submit" class="btn btn-outline-primary btn-sm" title="移入收藏">
-                                                        <i class="bi bi-star"></i> 移入收藏
-                                                    </button>
-                                                </form>
+                                                <button type="button" class="btn btn-outline-primary btn-sm" title="移入收藏" onclick="addToCollection({{ item.id }})">
+                                                    <i class="bi bi-star"></i> 移入收藏
+                                                </button>
                                                 <!-- 删除按钮 -->
-                                                <form method="post" action="{% url 'ticket:delete_cart_item' item.id %}" class="m-0">
-                                                    {% csrf_token %}
-                                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="删除" onclick="return confirm('确定要删除这个购物车项吗？')">
-                                                        <i class="bi bi-trash"></i> 删除
-                                                    </button>
-                                                </form>
+                                                <button type="button" class="btn btn-outline-danger btn-sm" title="删除" onclick="deleteCartItem({{ item.id }})">
+                                                    <i class="bi bi-trash"></i> 删除
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -98,6 +92,15 @@
                             </div>
                         </div>
                     {% endif %}
+                </form>
+                
+                <!-- 收藏和删除操作的表单 -->
+                <form id="collectionForm" method="post" action="" style="display: none;">
+                    {% csrf_token %}
+                </form>
+                
+                <form id="deleteForm" method="post" action="" style="display: none;">
+                    {% csrf_token %}
                 </form>
             </div>
         </div>
@@ -153,7 +156,7 @@
         document.addEventListener('DOMContentLoaded', updateTotalPrice);
         
         // 优化表单提交，确保选中的商品ID唯一
-        document.querySelector('form').addEventListener('submit', function(e) {
+        document.getElementById('purchaseForm').addEventListener('submit', function(e) {
             // 获取所有选中的复选框
             const checkedCheckboxes = document.querySelectorAll('.itemCheckbox:checked');
             
@@ -172,5 +175,21 @@
             
             console.log('选中的唯一商品ID:', Array.from(selectedIds));
         });
+        
+        // 移入收藏函数
+        function addToCollection(cartId) {
+            const collectionForm = document.getElementById('collectionForm');
+            collectionForm.action = '{% url 'ticket:add_to_collection' 0 %}'.replace('0', cartId);
+            collectionForm.submit();
+        }
+        
+        // 删除购物车项函数
+        function deleteCartItem(cartId) {
+            if (confirm('确定要删除这个购物车项吗？')) {
+                const deleteForm = document.getElementById('deleteForm');
+                deleteForm.action = '{% url 'ticket:delete_cart_item' 0 %}'.replace('0', cartId);
+                deleteForm.submit();
+            }
+        }
     </script>
 {% endblock %}

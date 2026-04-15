@@ -923,6 +923,62 @@ def scenic_admin_statistics(request):
 # 账户信息管理视图
 @scenic_admin_required
 def scenic_admin_account(request):
+    # 获取当前景点管理员
+    user = request.user
+    
+    # 判断请求方法是否为POST（表单提交）
+    if request.method == 'POST':
+        # 更新用户信息
+        user.username = request.POST.get('username')
+        user.email = request.POST.get('email')
+        user.phone = request.POST.get('phone')
+        user.gender = request.POST.get('gender')
+
+        # 处理出生日期
+        birthdate_str = request.POST.get('birthdate')
+        if birthdate_str:
+            from datetime import datetime
+            try:
+                user.birthdate = datetime.strptime(birthdate_str, '%Y-%m-%d').date()
+            except Exception as e:
+                # 解析失败时设置为 None
+                user.birthdate = None
+        else:
+            user.birthdate = None
+
+        # 处理头像上传
+        if 'avatar' in request.FILES:
+            user.avatar = request.FILES['avatar']
+
+        # 处理密码修改
+        old_password = request.POST.get('old_password')
+        new_password = request.POST.get('new_password')
+        confirm_password = request.POST.get('confirm_password')
+        
+        if old_password and new_password:
+            # 验证原密码
+            if user.check_password(old_password):
+                if new_password == confirm_password:
+                    # 更新密码
+                    user.set_password(new_password)
+                    messages.success(request, '密码修改成功')
+                else:
+                    messages.error(request, '两次输入的新密码不一致')
+                    return render(request, 'scenic_admin/account.html')
+            else:
+                messages.error(request, '原密码错误')
+                return render(request, 'scenic_admin/account.html')
+
+        # 保存用户信息
+        user.save()
+
+        # 显示成功消息
+        messages.success(request, '账户信息更新成功')
+
+        # 重定向到账户信息页面
+        return redirect(reverse('ticket:scenic_admin_account'))
+    
+    # 如果请求方法不是POST，渲染账户信息页面
     return render(request, 'scenic_admin/account.html')
 
 
@@ -3491,6 +3547,9 @@ def add_to_collection(request, cart_id):
                 scenic_spot=cart_item.scenic_spot
             )
             
+            # 从购物车中删除该项目
+            cart_item.delete()
+            
             # 如果是新创建的收藏，显示成功信息
             if created:
                 messages.success(request, '已成功加入收藏')
@@ -3845,3 +3904,35 @@ def scenic_admin_order_detail(request, order_id):
 def contact_service(request):
     # 渲染contact_service.html模板，显示联系客服页面
     return render(request, 'contact_service.html')
+
+
+# 收藏景点视图函数
+# @login_required装饰器：要求用户必须登录才能访问该视图
+@login_required
+def add_favorite(request, spot_id):
+    # 判断请求方法是否为POST
+    if request.method == 'POST':
+        try:
+            # 获取景点信息
+            scenic_spot = ScenicSpot.objects.get(id=spot_id)
+            
+            # 创建或获取收藏记录
+            collection, created = Collection.objects.get_or_create(
+                user=request.user,
+                scenic_spot=scenic_spot
+            )
+            
+            # 返回JSON响应
+            if created:
+                return JsonResponse({'success': True, 'message': '已成功收藏该景点'})
+            else:
+                # 如果已收藏，则删除收藏记录
+                collection.delete()
+                return JsonResponse({'success': True, 'message': '已取消收藏'})
+        except ScenicSpot.DoesNotExist:
+            return JsonResponse({'success': False, 'message': '景点不存在'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
+    # 如果不是POST请求，重定向到景点详情页面
+    return redirect(reverse('ticket:scenic_spot_detail', kwargs={'spot_id': spot_id}))

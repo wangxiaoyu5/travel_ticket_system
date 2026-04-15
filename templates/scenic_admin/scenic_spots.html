@@ -11,12 +11,7 @@
                 {% csrf_token %}
                 <div class="row mb-4">
                     <div class="col-md-6">
-                        <div class="btn-group">
-                            <a href="{% url 'ticket:scenic_admin_add_scenic_spot' %}" class="btn btn-success">新增景点</a>
-                            <button type="submit" name="operation" value="activate" class="btn btn-success">批量上架</button>
-                            <button type="submit" name="operation" value="deactivate" class="btn btn-warning">批量下架</button>
-                            <button type="submit" name="operation" value="delete" class="btn btn-danger">批量删除</button>
-                        </div>
+                        <!-- 移除了操作按钮 -->
                     </div>
                     <div class="col-md-6">
                         <div class="input-group">
@@ -31,11 +26,6 @@
                     <table class="table table-striped w-100">
                         <thead>
                             <tr>
-                                <th scope="col">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="selectAll">
-                                    </div>
-                                </th>
                                 <th scope="col">序号</th>
                                 <th scope="col">名称</th>
                                 <th scope="col">门票价格</th>
@@ -49,11 +39,6 @@
                         <tbody>
                             {% for scenic in scenic_spots %}
                             <tr>
-                                <td>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="spot_ids" value="{{ scenic.id }}">
-                                    </div>
-                                </td>
                                 <td>{{ forloop.counter }}</td>
                                 <td>{{ scenic.name }}</td>
                                 <td>¥{{ scenic.price|floatformat:2 }}</td>
@@ -87,7 +72,7 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="9" class="text-center">暂无景点数据</td>
+                                <td colspan="8" class="text-center">暂无景点数据</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -134,13 +119,5 @@
         </div>
     </div>
     
-    <script>
-        // 全选/取消全选功能
-        document.getElementById('selectAll').addEventListener('change', function() {
-            const checkboxes = document.querySelectorAll('.form-check-input:not(#selectAll)');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = this.checked;
-            });
-        });
-    </script>
+
 {% endblock %}

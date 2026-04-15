@@ -45,7 +45,7 @@
                                     class="form-select" 
                                     onchange="document.getElementById('filter-form').submit();"
                                 >
-                                    <option value="" {% if not region_filter %}selected{% endif %}>
+                                    <option value="全部地区" {% if region_filter == '全部地区' %}selected{% endif %}>
                                         全部地区
                                     </option>
                                     {% for region in regions %}

@@ -165,7 +165,7 @@
                 <div class="card border-0 shadow-sm rounded-lg mb-6">
                     <div class="card-body p-6">
                         <h5 class="card-title mb-4">发表留言</h5>
-                        <form method="post" action="#" id="commentForm" class="needs-validation" novalidate>
+                        <form method="post" action="{% url 'ticket:scenic_spot_detail' spot_id=spot.id %}" id="commentForm" class="needs-validation" novalidate>
                             {% csrf_token %}
                             <div class="mb-4">
                                 <textarea class="form-control" rows="4" name="comment_content" placeholder="请输入您的留言内容..." required></textarea>
@@ -336,25 +336,30 @@
     <script>
         // 页面加载完成后执行
         document.addEventListener('DOMContentLoaded', function() {
-            // 表单验证
-            const commentForm = document.getElementById('commentForm');
-            if (commentForm) {
-                commentForm.addEventListener('submit', function(event) {
-                    if (!commentForm.checkValidity()) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                    }
-                    commentForm.classList.add('was-validated');
-                });
-            }
-            
             // 提交留言按钮效果
             const submitComment = document.getElementById('submitComment');
             if (submitComment) {
-                submitComment.addEventListener('click', function() {
-                    this.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> 提交中...';
-                    this.disabled = true;
-                });
+                // 保存原始按钮文本
+                const originalText = submitComment.innerHTML;
+                
+                // 表单验证
+                const commentForm = document.getElementById('commentForm');
+                if (commentForm) {
+                    commentForm.addEventListener('submit', function(event) {
+                        if (!commentForm.checkValidity()) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            // 验证失败时恢复按钮状态
+                            submitComment.innerHTML = originalText;
+                            submitComment.disabled = false;
+                        } else {
+                            // 验证通过时设置提交中状态
+                            submitComment.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> 提交中...';
+                            submitComment.disabled = true;
+                        }
+                        commentForm.classList.add('was-validated');
+                    });
+                }
             }
             
             // 平滑滚动
@@ -412,20 +417,47 @@
             const favoriteBtn = document.querySelector('.btn-outline-danger');
             if (favoriteBtn) {
                 favoriteBtn.addEventListener('click', function() {
+                    // 检查用户是否登录
+                    {% if not user.is_authenticated %}
+                        alert('请先登录');
+                        window.location.href = '{% url 'ticket:login' %}?next={{ request.path }}';
+                        return;
+                    {% endif %}
+                    
                     const icon = this.querySelector('i');
-                    if (icon.classList.contains('bi-heart')) {
-                        icon.classList.remove('bi-heart');
-                        icon.classList.add('bi-heart-fill');
-                        this.classList.add('btn-danger');
-                        this.classList.remove('btn-outline-danger');
-                        alert('已收藏该景点');
-                    } else {
-                        icon.classList.remove('bi-heart-fill');
-                        icon.classList.add('bi-heart');
-                        this.classList.remove('btn-danger');
-                        this.classList.add('btn-outline-danger');
-                        alert('已取消收藏');
-                    }
+                    
+                    // 发送AJAX请求
+                    fetch('{% url 'ticket:add_favorite' spot.id %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({})
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (icon.classList.contains('bi-heart')) {
+                                icon.classList.remove('bi-heart');
+                                icon.classList.add('bi-heart-fill');
+                                favoriteBtn.classList.add('btn-danger');
+                                favoriteBtn.classList.remove('btn-outline-danger');
+                            } else {
+                                icon.classList.remove('bi-heart-fill');
+                                icon.classList.add('bi-heart');
+                                favoriteBtn.classList.remove('btn-danger');
+                                favoriteBtn.classList.add('btn-outline-danger');
+                            }
+                            alert(data.message);
+                        } else {
+                            alert(data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('收藏失败，请重试');
+                    });
                 });
             }
         });
